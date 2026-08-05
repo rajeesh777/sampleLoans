@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Calendar, CheckCircle2, MessageCircle, CheckSquare, Clock, Filter, Lock } from 'lucide-react';
-import { getMemberStats } from '../utils/storage';
+import { getMemberStats, formatDateDDMMYY } from '../utils/storage';
 
 export default function SundayContributions({
   state,
@@ -46,6 +46,26 @@ export default function SundayContributions({
     return true;
   });
 
+  // Get unpaid weeks before the selected week for a member
+  const getDueWeeks = (memberId) => {
+    const dueWeeks = [];
+    for (let w = 1; w < selectedWeek; w++) {
+      const weekData = state.weeks[w];
+      if (weekData && weekData.collections && weekData.collections[memberId]) {
+        const rec = weekData.collections[memberId];
+        if (!rec.paid) {
+          dueWeeks.push({
+            weekNum: w,
+            date: weekData.date,
+            displayDate: weekData.displayDate,
+            amount: rec.amount || state.weeklyAmount || 1000
+          });
+        }
+      }
+    }
+    return dueWeeks;
+  };
+
   return (
     <div className="sunday-ledger-container">
       {/* Week Selector Ribbon */}
@@ -89,7 +109,7 @@ export default function SundayContributions({
       >
         <div>
           <h2 style={{ fontSize: '1.25rem', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '10px' }}>
-            Sunday Contributions — Week {selectedWeek}
+            Sunday Contributions — Week {selectedWeek} ({formatDateDDMMYY(weekData.date)})
             {weekData.ceased && (
               <span className="status-badge" style={{ background: '#6b7280', color: '#f3f4f6', fontSize: '0.75rem' }}>
                 🔒 CEASED
@@ -133,6 +153,9 @@ export default function SundayContributions({
           const rec = weekData.collections[member.id] || { paid: false, paymentMethod: 'UPI' };
           const mStats = getMemberStats(state, member.id);
           const regularAmount = rec.amount || state.weeklyAmount || 1000;
+          const dueWeeks = getDueWeeks(member.id);
+          const totalDuesAmount = dueWeeks.reduce((sum, d) => sum + d.amount, 0);
+          const hasDues = dueWeeks.length > 0;
 
           return (
             <div
@@ -155,10 +178,40 @@ export default function SundayContributions({
                 </div>
               </div>
 
+              {/* Show Dues Section First */}
+              {hasDues && (
+                <div style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid #ef4444', borderRadius: '8px', padding: '12px', marginBottom: '12px' }}>
+                  <div style={{ fontSize: '0.9rem', fontWeight: '600', color: '#fca5a5', marginBottom: '8px' }}>
+                    ⚠️ Pending Dues (₹{totalDuesAmount})
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '10px' }}>
+                    {dueWeeks.map((due) => (
+                      <div key={due.weekNum} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: '#fca5a5', paddingBottom: '6px', borderBottom: '1px solid rgba(239, 68, 68, 0.3)' }}>
+                        <span>Week {due.weekNum} ({due.displayDate})</span>
+                        <span style={{ fontWeight: '600' }}>₹{due.amount}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button
+                      className="btn btn-sm"
+                      style={{ background: '#ef4444', color: 'white', flex: 1, fontSize: '0.85rem' }}
+                      onClick={() => {
+                        dueWeeks.forEach((due) => onTogglePayment(due.weekNum, member.id));
+                      }}
+                      disabled={weekData.ceased || editLocked}
+                      title={editLocked ? '🔒 Editing is locked' : 'Pay all pending dues'}
+                    >
+                      <CheckCircle2 size={14} /> Pay All Dues (₹{totalDuesAmount})
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {/* Dues Breakdown */}
               <div className="due-breakdown">
                 <div className="due-item">
-                  <span className="due-item-label">Sunday Contribution</span>
+                  <span className="due-item-label">Week {selectedWeek} Contribution {hasDues && '(After Dues)'}</span>
                   <span className="due-item-val" style={{ color: rec.paid ? '#10b981' : '#f87171' }}>
                     ₹{regularAmount} ({rec.paid ? 'PAID' : 'DUE'})
                   </span>
@@ -182,9 +235,9 @@ export default function SundayContributions({
                 <button
                   className={`btn btn-toggle-paid ${rec.paid ? 'paid' : 'unpaid'}`}
                   onClick={() => onTogglePayment(selectedWeek, member.id)}
-                  disabled={weekData.ceased || editLocked}
-                  style={(weekData.ceased || editLocked) ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
-                  title={editLocked ? '🔒 Editing is locked' : weekData.ceased ? 'Week is ceased' : 'Mark payment'}
+                  disabled={weekData.ceased || editLocked || hasDues}
+                  style={(weekData.ceased || editLocked || hasDues) ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
+                  title={hasDues ? '⚠️ Pay pending dues first' : editLocked ? '🔒 Editing is locked' : weekData.ceased ? 'Week is ceased' : 'Mark payment'}
                 >
                   {rec.paid ? <CheckCircle2 size={16} /> : null}
                   {rec.paid ? 'PAID ₹1,000' : 'MARK ₹1k PAID'}
@@ -192,10 +245,10 @@ export default function SundayContributions({
 
                 <button
                   className="btn btn-sm"
-                  style={{ background: '#8b5cf6', color: 'white', opacity: (weekData.ceased || editLocked) ? 0.5 : 1, cursor: (weekData.ceased || editLocked) ? 'not-allowed' : 'pointer' }}
+                  style={{ background: '#8b5cf6', color: 'white', opacity: (weekData.ceased || editLocked || hasDues) ? 0.5 : 1, cursor: (weekData.ceased || editLocked || hasDues) ? 'not-allowed' : 'pointer' }}
                   onClick={() => setAdvancePaymentModal({ memberId: member.id })}
-                  disabled={weekData.ceased || editLocked}
-                  title={editLocked ? '🔒 Editing is locked' : weekData.ceased ? "Week is ceased - no edits allowed" : "Pay multiple weeks in advance with custom amount"}
+                  disabled={weekData.ceased || editLocked || hasDues}
+                  title={hasDues ? '⚠️ Pay pending dues first' : editLocked ? '🔒 Editing is locked' : weekData.ceased ? "Week is ceased - no edits allowed" : "Pay multiple weeks in advance with custom amount"}
                 >
                   <Clock size={14} /> Advance Pay
                 </button>

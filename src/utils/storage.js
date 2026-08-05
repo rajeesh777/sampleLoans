@@ -4,6 +4,16 @@ import { isSupabaseConfigured, fetchSupabaseState, syncStateToSupabase } from '.
 
 const STORAGE_KEY = 'ISTHOOI_APP_STATE_V2';
 
+// Format date as DD/MM/YY
+export const formatDateDDMMYY = (dateStr) => {
+  if (!dateStr) return '';
+  const date = new Date(dateStr);
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const year = String(date.getFullYear()).slice(-2);
+  return `${day}/${month}/${year}`;
+};
+
 // Sample 10 initial members
 export const INITIAL_MEMBERS = [
   { id: 'm1', name: 'Rajesh Kumar', phone: '+91 9876543210', upiId: 'rajesh@upi', avatarColor: '#10b981' },
@@ -65,7 +75,8 @@ export const getInitialState = () => {
         paymentMethod: 'UPI',
         paidAt: null,
         loanInstallmentPaid: false,
-        loanInstallmentAmount: 0
+        loanInstallmentAmount: 0,
+        loanInstallmentPaidAt: null
       };
     });
 
@@ -116,6 +127,12 @@ export const getInitialState = () => {
       }
     });
   });
+
+  // Test scenario: Mark Priya (m3) as having unpaid weeks 1 and 2 to demo the dues feature
+  sampleState.weeks[1].collections['m3'].paid = false;
+  sampleState.weeks[1].collections['m3'].paidAt = null;
+  sampleState.weeks[2].collections['m3'].paid = false;
+  sampleState.weeks[2].collections['m3'].paidAt = null;
 
   return sampleState;
 };
