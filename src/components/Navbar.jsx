@@ -12,7 +12,7 @@ export default function Navbar({ activeTab, setActiveTab, groupStats, loggedInMe
           </div>
           <div>
             <h1 className="brand-title">Isthooi</h1>
-            <div className="brand-subtitle">{memberCount || 10} Members • ₹{weeklyAmount || 1000} / Sunday</div>
+            <div className="brand-subtitle">{memberCount} Members • ₹{weeklyAmount || 1000} / Sunday</div>
           </div>
         </div>
 
