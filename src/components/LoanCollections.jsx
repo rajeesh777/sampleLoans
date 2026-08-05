@@ -162,76 +162,79 @@ export default function LoanCollections({
               <p style={{ fontSize: '1rem', marginBottom: '8px' }}>No active loans this week</p>
               <p style={{ fontSize: '0.85rem' }}>Members with active loans will appear here</p>
             </div>
-          ) : (
-            filteredMembers.map((member) => {
+          ) : (() => {
+            // Create an array of all active loans with member info
+            const allActiveLoanCards = [];
+            filteredMembers.forEach((member) => {
               const mStats = getMemberStats(state, member.id);
-              const activeLoan = mStats.activeLoans[0];
               const rec = weekData.collections[member.id] || {};
 
-              if (!activeLoan) return null;
+              mStats.activeLoans.forEach((activeLoan) => {
+                const loanNickname = activeLoan.nickname || 'Loan';
+                const remainingBalance = activeLoan.requestedAmount - activeLoan.repaidAmount;
+                const weeksRemaining = activeLoan.startWeekNum + activeLoan.termWeeks - selectedWeek;
+                const isUrgent = weeksRemaining <= 2;
 
-            const loanNickname = activeLoan.nickname || 'Loan';
-            const remainingBalance = activeLoan.requestedAmount - activeLoan.repaidAmount;
-            const weeksRemaining = activeLoan.startWeekNum + activeLoan.termWeeks - selectedWeek;
-            const isUrgent = weeksRemaining <= 2;
-
-            return (
-              <div
-                key={member.id}
-                className={`member-card ${remainingBalance === 0 ? 'paid' : ''}`}
-                style={isUrgent && remainingBalance > 0 ? { borderColor: '#ef4444', borderWidth: '2px' } : {}}
-              >
-                <div className="member-info">
-                  <div className="avatar" style={{ backgroundColor: member.avatarColor || '#f59e0b' }}>
-                    {member.name.substring(0, 2).toUpperCase()}
-                  </div>
-                  <div>
-                    <div className="member-name">
-                      {member.name}
-                      <span className="status-badge gold" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                        <Tag size={10} /> {loanNickname}
-                      </span>
-                    </div>
-                    <div className="member-phone">{member.phone} • UPI: {member.upiId}</div>
-                    <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '4px' }}>
-                      Outstanding: ₹{remainingBalance.toLocaleString('en-IN')} •
-                      Repaid: ₹{activeLoan.repaidAmount.toLocaleString('en-IN')}/₹{activeLoan.requestedAmount.toLocaleString('en-IN')}
-                      {weeksRemaining > 0 && ` • ${weeksRemaining} wk${weeksRemaining !== 1 ? 's' : ''} left`}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Loan Repayment Status */}
-                <div className="due-breakdown">
-                  <div className="due-item">
-                    <span className="due-item-label" style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
-                      <Tag size={10} color="#fbbf24" /> Repayment Status
-                    </span>
-                    <span className="due-item-val" style={{ color: remainingBalance === 0 ? '#10b981' : isUrgent ? '#ef4444' : '#f59e0b' }}>
-                      {remainingBalance === 0 ? '✓ CLOSED' : isUrgent ? `🚨 ${weeksRemaining} WK${weeksRemaining !== 1 ? 'S' : ''} LEFT` : `₹${remainingBalance.toLocaleString('en-IN')} DUE`}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Payment Actions */}
-                <div className="action-group">
-                  <button
-                    className="btn btn-sm btn-gold"
-                    style={{ flex: 1, background: remainingBalance === 0 ? '#10b981' : isUrgent ? '#ef4444' : '#f59e0b' }}
-                    onClick={() => {
-                      setLoanPaymentModal({ memberId: member.id, loanId: activeLoan.id, loan: activeLoan });
-                      setLoanPaymentAmount(Math.min(5000, remainingBalance));
-                    }}
-                    disabled={weekData.ceased || editLocked || remainingBalance === 0}
-                    title={editLocked ? '🔒 Editing is locked' : weekData.ceased ? 'Week is ceased' : 'Make loan payment'}
+                allActiveLoanCards.push(
+                  <div
+                    key={activeLoan.id}
+                    className={`member-card ${remainingBalance === 0 ? 'paid' : ''}`}
+                    style={isUrgent && remainingBalance > 0 ? { borderColor: '#ef4444', borderWidth: '2px' } : {}}
                   >
-                    {remainingBalance === 0 ? '✓ Loan Closed' : `Pay Loan`}
-                  </button>
-                </div>
-              </div>
-            );
-          })
-          )
+                    <div className="member-info">
+                      <div className="avatar" style={{ backgroundColor: member.avatarColor || '#f59e0b' }}>
+                        {member.name.substring(0, 2).toUpperCase()}
+                      </div>
+                      <div>
+                        <div className="member-name">
+                          {member.name}
+                          <span className="status-badge gold" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                            <Tag size={10} /> {loanNickname}
+                          </span>
+                        </div>
+                        <div className="member-phone">{member.phone} • UPI: {member.upiId}</div>
+                        <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '4px' }}>
+                          Outstanding: ₹{remainingBalance.toLocaleString('en-IN')} •
+                          Repaid: ₹{activeLoan.repaidAmount.toLocaleString('en-IN')}/₹{activeLoan.requestedAmount.toLocaleString('en-IN')}
+                          {weeksRemaining > 0 && ` • ${weeksRemaining} wk${weeksRemaining !== 1 ? 's' : ''} left`}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Loan Repayment Status */}
+                    <div className="due-breakdown">
+                      <div className="due-item">
+                        <span className="due-item-label" style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
+                          <Tag size={10} color="#fbbf24" /> Repayment Status
+                        </span>
+                        <span className="due-item-val" style={{ color: remainingBalance === 0 ? '#10b981' : isUrgent ? '#ef4444' : '#f59e0b' }}>
+                          {remainingBalance === 0 ? '✓ CLOSED' : isUrgent ? `🚨 ${weeksRemaining} WK${weeksRemaining !== 1 ? 'S' : ''} LEFT` : `₹${remainingBalance.toLocaleString('en-IN')} DUE`}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Payment Actions */}
+                    <div className="action-group">
+                      <button
+                        className="btn btn-sm btn-gold"
+                        style={{ flex: 1, background: remainingBalance === 0 ? '#10b981' : isUrgent ? '#ef4444' : '#f59e0b' }}
+                        onClick={() => {
+                          setLoanPaymentModal({ memberId: member.id, loanId: activeLoan.id, loan: activeLoan });
+                          setLoanPaymentAmount(Math.min(5000, remainingBalance));
+                        }}
+                        disabled={weekData.ceased || editLocked || remainingBalance === 0}
+                        title={editLocked ? '🔒 Editing is locked' : weekData.ceased ? 'Week is ceased' : 'Make loan payment'}
+                      >
+                        {remainingBalance === 0 ? '✓ Loan Closed' : `Pay Loan`}
+                      </button>
+                    </div>
+                  </div>
+                );
+              });
+            });
+
+            return allActiveLoanCards;
+          })()
         ) : (
           // CLOSED LOANS VIEW
           state.loans.filter(l => l.status === 'REPAID').length === 0 ? (

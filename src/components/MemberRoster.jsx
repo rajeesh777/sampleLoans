@@ -19,30 +19,47 @@ export default function MemberRoster({ state }) {
       if (weekData) {
         const collection = weekData.collections[memberId];
 
-        // Find if there's an active loan for this member
-        let loanNickname = '';
-        const activeLoan = memberLoans.find(l =>
+        // Find all active loans for this member in this week
+        const activeLoansThatWeek = memberLoans.filter(l =>
           l.startWeekNum <= weekNum &&
           (l.startWeekNum + l.termWeeks > weekNum) &&
           l.status === 'ACTIVE'
         );
-        if (activeLoan) {
-          loanNickname = activeLoan.nickname || 'Loan';
-        }
 
-        ledger.push({
-          weekNum,
-          date: weekData.date,
-          displayDate: weekData.displayDate,
-          paid: collection?.paid || false,
-          amount: collection?.amount || state.weeklyAmount || 1000,
-          paymentMethod: collection?.paymentMethod || 'UPI',
-          paidAt: collection?.paidAt || null,
-          loanPaid: collection?.loanInstallmentPaid || false,
-          loanAmount: collection?.loanInstallmentAmount || 0,
-          loanPaidAt: collection?.loanInstallmentPaidAt || null,
-          loanNickname: loanNickname
-        });
+        // If there are active loans, create an entry for each
+        if (activeLoansThatWeek.length > 0) {
+          activeLoansThatWeek.forEach(activeLoan => {
+            ledger.push({
+              weekNum,
+              date: weekData.date,
+              displayDate: weekData.displayDate,
+              paid: collection?.paid || false,
+              amount: collection?.amount || state.weeklyAmount || 1000,
+              paymentMethod: collection?.paymentMethod || 'UPI',
+              paidAt: collection?.paidAt || null,
+              loanPaid: collection?.loanInstallmentPaid || false,
+              loanAmount: collection?.loanInstallmentAmount || 0,
+              loanPaidAt: collection?.loanInstallmentPaidAt || null,
+              loanNickname: activeLoan.nickname || 'Loan',
+              loanId: activeLoan.id
+            });
+          });
+        } else {
+          // No active loans this week
+          ledger.push({
+            weekNum,
+            date: weekData.date,
+            displayDate: weekData.displayDate,
+            paid: collection?.paid || false,
+            amount: collection?.amount || state.weeklyAmount || 1000,
+            paymentMethod: collection?.paymentMethod || 'UPI',
+            paidAt: collection?.paidAt || null,
+            loanPaid: collection?.loanInstallmentPaid || false,
+            loanAmount: collection?.loanInstallmentAmount || 0,
+            loanPaidAt: collection?.loanInstallmentPaidAt || null,
+            loanNickname: ''
+          });
+        }
       }
     }
     return ledger;
