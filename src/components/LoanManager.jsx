@@ -38,9 +38,12 @@ export default function LoanManager({ state, groupStats, onCreateLoan, onRepayLo
       return;
     }
 
+    const selectedMember = state.members.find(m => m.id === selectedMemberId);
+    const loanNickname = nickname.trim() || selectedMember?.name || 'General Advance';
+
     onCreateLoan({
       memberId: selectedMemberId,
-      nickname: nickname.trim() || 'General Advance',
+      nickname: loanNickname,
       requestedAmount: numRequested,
       disbursedAmount: disbursedCash,
       upfrontFee: upfrontFee,

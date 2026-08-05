@@ -1,0 +1,293 @@
+import React, { useState } from 'react';
+import { Calendar, CheckCircle2, CheckSquare, Clock, Filter, Tag, Lock } from 'lucide-react';
+import { getMemberStats } from '../utils/storage';
+
+export default function LoanCollections({
+  state,
+  editLocked,
+  onToggleLoanInstallment,
+  onMarkAllPaid,
+  onAdvanceLoanInstallment,
+  onCeaseWeek
+}) {
+  const [selectedWeek, setSelectedWeek] = useState(state.currentWeekNum || 1);
+  const [filterMode, setFilterMode] = useState('ALL');
+  const [advancePaymentModal, setAdvancePaymentModal] = useState(null);
+  const [advanceAmount, setAdvanceAmount] = useState(5000);
+  const [showCeaseConfirm, setShowCeaseConfirm] = useState(false);
+
+  const weekData = state.weeks[selectedWeek] || { collections: {} };
+
+  const weekPills = [];
+  for (let i = 1; i <= 52; i++) {
+    weekPills.push(i);
+  }
+
+  const filteredMembers = state.members.filter((m) => {
+    const mStats = getMemberStats(state, m.id);
+    const hasActiveLoan = mStats.activeLoans.length > 0;
+    if (!hasActiveLoan) return false;
+
+    const rec = weekData.collections[m.id] || {};
+    const isPaid = rec.loanInstallmentPaid || false;
+    if (filterMode === 'UNPAID') return !isPaid;
+    if (filterMode === 'PAID') return isPaid;
+    return true;
+  });
+
+  return (
+    <div className="sunday-ledger-container">
+      {/* Week Selector Ribbon */}
+      <div className="card" style={{ marginBottom: '16px', padding: '16px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+          <span style={{ fontWeight: '700', fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <Calendar size={18} color="#f59e0b" /> Select Sunday (Week 1 to 52)
+          </span>
+          <span style={{ fontSize: '0.85rem', color: '#fbbf24', fontWeight: '600' }}>
+            {weekData.displayDate}
+          </span>
+        </div>
+
+        <div className="week-selector-container">
+          {weekPills.map((wNum) => (
+            <button
+              key={wNum}
+              className={`week-pill ${selectedWeek === wNum ? 'active' : ''}`}
+              onClick={() => setSelectedWeek(wNum)}
+            >
+              Wk {wNum}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Header Actions & Filter */}
+      <div
+        className="card"
+        style={{
+          background: weekData.ceased
+            ? 'linear-gradient(135deg, #1f2937 0%, #111827 100%)'
+            : 'linear-gradient(135deg, #7c2d12 0%, #92400e 100%)',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '12px',
+          border: weekData.ceased ? '2px solid #6b7280' : 'none'
+        }}
+      >
+        <div>
+          <h2 style={{ fontSize: '1.25rem', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '10px' }}>
+            Loan Collections — Week {selectedWeek}
+            {weekData.ceased && (
+              <span className="status-badge" style={{ background: '#6b7280', color: '#f3f4f6', fontSize: '0.75rem' }}>
+                🔒 CEASED
+              </span>
+            )}
+          </h2>
+          <p style={{ fontSize: '0.8rem', color: '#fcd34d' }}>
+            Date: {weekData.displayDate} • Track loan installment payments
+            {weekData.ceased && <span style={{ marginLeft: '12px', color: '#9ca3af' }}>Ceased on {weekData.ceaseDate}</span>}
+          </p>
+        </div>
+
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+          <button
+            className="btn btn-secondary btn-sm"
+            onClick={() => setFilterMode(filterMode === 'ALL' ? 'UNPAID' : 'ALL')}
+            disabled={weekData.ceased || editLocked}
+          >
+            <Filter size={14} /> Filter: {filterMode}
+          </button>
+
+          <button
+            className="btn btn-primary btn-sm"
+            onClick={() => onMarkAllPaid(selectedWeek)}
+            disabled={weekData.ceased || editLocked}
+          >
+            <CheckSquare size={16} /> Mark All Paid
+          </button>
+
+          {editLocked && (
+            <span style={{ fontSize: '0.85rem', color: '#ef4444', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Lock size={14} /> Editing Locked
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Members with Active Loans */}
+      <div className="members-collection-list">
+        {filteredMembers.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '40px', color: '#94a3b8' }}>
+            <p style={{ fontSize: '1rem', marginBottom: '8px' }}>No active loans this week</p>
+            <p style={{ fontSize: '0.85rem' }}>Members with active loans will appear here</p>
+          </div>
+        ) : (
+          filteredMembers.map((member) => {
+            const mStats = getMemberStats(state, member.id);
+            const activeLoan = mStats.activeLoans[0];
+            const rec = weekData.collections[member.id] || {};
+
+            if (!activeLoan) return null;
+
+            const loanInstallment = activeLoan.weeklyInstallment;
+            const loanNickname = activeLoan.nickname || 'Loan';
+
+            return (
+              <div
+                key={member.id}
+                className={`member-card ${rec.loanInstallmentPaid ? 'paid' : ''}`}
+              >
+                <div className="member-info">
+                  <div className="avatar" style={{ backgroundColor: member.avatarColor || '#f59e0b' }}>
+                    {member.name.substring(0, 2).toUpperCase()}
+                  </div>
+                  <div>
+                    <div className="member-name">
+                      {member.name}
+                      <span className="status-badge gold" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                        <Tag size={10} /> {loanNickname}
+                      </span>
+                    </div>
+                    <div className="member-phone">{member.phone} • UPI: {member.upiId}</div>
+                    <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '4px' }}>
+                      Remaining: ₹{(activeLoan.requestedAmount - activeLoan.repaidAmount).toLocaleString('en-IN')} •
+                      Repaid: ₹{activeLoan.repaidAmount.toLocaleString('en-IN')}/₹{activeLoan.requestedAmount.toLocaleString('en-IN')}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Loan Installment Due */}
+                <div className="due-breakdown">
+                  <div className="due-item">
+                    <span className="due-item-label" style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
+                      <Tag size={10} color="#fbbf24" /> {loanNickname} Installment
+                    </span>
+                    <span className="due-item-val" style={{ color: rec.loanInstallmentPaid ? '#10b981' : '#f59e0b' }}>
+                      ₹{loanInstallment} ({rec.loanInstallmentPaid ? 'PAID' : 'DUE'})
+                    </span>
+                  </div>
+                </div>
+
+                {/* Payment Actions */}
+                <div className="action-group">
+                  <button
+                    className={`btn btn-sm ${rec.loanInstallmentPaid ? 'btn-primary' : 'btn-gold'}`}
+                    onClick={() => onToggleLoanInstallment(selectedWeek, member.id, activeLoan.id)}
+                    disabled={weekData.ceased || editLocked}
+                    style={(weekData.ceased || editLocked) ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
+                    title={editLocked ? '🔒 Editing is locked' : weekData.ceased ? 'Week is ceased' : 'Mark payment'}
+                  >
+                    {rec.loanInstallmentPaid ? 'Loan Inst. Paid' : `Pay ${loanNickname} ₹${loanInstallment}`}
+                  </button>
+
+                  <button
+                    className="btn btn-sm"
+                    style={{ background: '#8b5cf6', color: 'white', opacity: (weekData.ceased || editLocked) ? 0.5 : 1, cursor: (weekData.ceased || editLocked) ? 'not-allowed' : 'pointer' }}
+                    onClick={() => setAdvancePaymentModal({ memberId: member.id, loanId: activeLoan.id })}
+                    disabled={weekData.ceased || editLocked}
+                    title={editLocked ? '🔒 Editing is locked' : weekData.ceased ? "Week is ceased - no edits allowed" : "Pay multiple weeks of loan in advance"}
+                  >
+                    <Clock size={14} /> Loan Advance
+                  </button>
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      {/* Advance Loan Payment Modal */}
+      {advancePaymentModal && (() => {
+        const member = state.members.find(m => m.id === advancePaymentModal.memberId);
+        const activeLoan = getMemberStats(state, advancePaymentModal.memberId).activeLoans[0];
+        const weeklyAmount = activeLoan?.weeklyInstallment || 1000;
+        const weeksToFill = Math.floor(advanceAmount / weeklyAmount);
+        const remainderAmount = advanceAmount % weeklyAmount;
+
+        return (
+          <div className="modal-overlay" onClick={() => setAdvancePaymentModal(null)}>
+            <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '500px' }}>
+              <div className="modal-header">
+                <h3 style={{ fontSize: '1.25rem', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Clock size={20} color="#f59e0b" />
+                  Advance Loan Installment - {member?.name}
+                </h3>
+                <button className="modal-close" onClick={() => setAdvancePaymentModal(null)}>×</button>
+              </div>
+
+              <div style={{ marginBottom: '16px' }}>
+                <label className="form-label">Amount to Pay in Advance (₹)</label>
+                <input
+                  type="number"
+                  min="0"
+                  value={advanceAmount}
+                  onChange={(e) => {
+                    const val = parseInt(e.target.value) || 0;
+                    setAdvanceAmount(val);
+                  }}
+                  className="form-input"
+                  placeholder="Enter amount"
+                />
+              </div>
+
+              <div style={{ background: 'rgba(245, 158, 11, 0.1)', border: '1px solid #f59e0b', borderRadius: '8px', padding: '12px', marginBottom: '16px' }}>
+                <div style={{ fontSize: '0.9rem', color: '#fcd34d', marginBottom: '8px' }}>
+                  <strong>Calculation:</strong> ₹{advanceAmount} ÷ ₹{weeklyAmount}/week = <strong>{weeksToFill} weeks</strong>
+                  {remainderAmount > 0 && ` + ₹${remainderAmount} remainder`}
+                </div>
+                <div style={{ fontSize: '0.85rem', color: '#fbbf24' }}>
+                  Starting from Week {selectedWeek}, the amount will be applied across the following weeks:
+                </div>
+              </div>
+
+              <div style={{ marginBottom: '16px' }}>
+                <label className="form-label">Coverage (Weeks {selectedWeek} onwards):</label>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {Array.from({ length: Math.min(weeksToFill + (remainderAmount > 0 ? 1 : 0), 10) }).map((_, idx) => {
+                    const weekNum = selectedWeek + idx;
+                    if (weekNum > 52) return null;
+                    const amount = idx < weeksToFill ? weeklyAmount : remainderAmount;
+                    const weekInfo = state.weeks[weekNum];
+                    return (
+                      <div key={weekNum} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px', background: 'var(--bg-dark)', borderRadius: '6px', fontSize: '0.9rem' }}>
+                        <span>Week {weekNum} ({weekInfo?.displayDate || 'N/A'})</span>
+                        <span style={{ color: '#fbbf24', fontWeight: '600' }}>₹{amount}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => {
+                    setAdvancePaymentModal(null);
+                    setAdvanceAmount(5000);
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-gold"
+                  onClick={() => {
+                    onAdvanceLoanInstallment(selectedWeek, advancePaymentModal.memberId, advancePaymentModal.loanId, advanceAmount);
+                    setAdvancePaymentModal(null);
+                    setAdvanceAmount(5000);
+                  }}
+                  disabled={advanceAmount <= 0}
+                >
+                  Confirm & Record ₹{advanceAmount}
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+    </div>
+  );
+}

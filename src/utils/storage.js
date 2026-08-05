@@ -50,10 +50,13 @@ export const generate52Sundays = (startDateStr = '2026-01-04') => {
 
 // Seed initial state if none exists
 export const getInitialState = () => {
-  const sundays = generate52Sundays();
+  const startDate = '2026-01-04';
+  const totalWeeks = 52;
+  const sundays = generate52Sundays(startDate);
 
   const weeks = {};
-  sundays.forEach((s) => {
+  for (let i = 0; i < totalWeeks; i++) {
+    const s = sundays[i];
     const collections = {};
     INITIAL_MEMBERS.forEach((m) => {
       collections[m.id] = {
@@ -72,13 +75,14 @@ export const getInitialState = () => {
       displayDate: s.displayDate,
       collections
     };
-  });
+  }
 
   const sampleState = {
     groupName: 'Isthooi Savings Group',
     weeklyAmount: 1000,
     currentWeekNum: 3,
-    startDate: '2026-01-04',
+    startDate: startDate,
+    totalWeeks: totalWeeks,
     members: INITIAL_MEMBERS,
     weeks,
     loans: [

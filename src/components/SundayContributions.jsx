@@ -1,22 +1,20 @@
 import React, { useState } from 'react';
-import { Calendar, CheckCircle2, MessageCircle, CheckSquare, Clock, Filter, Tag } from 'lucide-react';
+import { Calendar, CheckCircle2, MessageCircle, CheckSquare, Clock, Filter, Lock } from 'lucide-react';
 import { getMemberStats } from '../utils/storage';
 
-export default function SundayLedger({
+export default function SundayContributions({
   state,
+  editLocked,
   onTogglePayment,
-  onToggleLoanInstallment,
   onMarkAllPaid,
   onChangePaymentMethod,
   onAdvancePayment,
-  onAdvanceLoanInstallment,
   onCeaseWeek
 }) {
   const [selectedWeek, setSelectedWeek] = useState(state.currentWeekNum || 1);
-  const [filterMode, setFilterMode] = useState('ALL'); // 'ALL' | 'UNPAID' | 'PAID'
-  const [advancePaymentModal, setAdvancePaymentModal] = useState(null); // { memberId, type: 'regular'|'loan', loanId?, method? }
+  const [filterMode, setFilterMode] = useState('ALL');
+  const [advancePaymentModal, setAdvancePaymentModal] = useState(null);
   const [advanceAmount, setAdvanceAmount] = useState(5000);
-  const [advanceDistribution, setAdvanceDistribution] = useState({});
   const [showCeaseConfirm, setShowCeaseConfirm] = useState(false);
 
   const weekData = state.weeks[selectedWeek] || { collections: {} };
@@ -26,15 +24,11 @@ export default function SundayLedger({
     weekPills.push(i);
   }
 
-  // Handle WhatsApp Reminder Link
-  const handleSendWhatsApp = (member, regularAmount, loanInstallment, loanNickname, totalDue, unpaidWeeksCount) => {
+  const handleSendWhatsApp = (member, regularAmount, unpaidWeeksCount) => {
     const cleanPhone = member.phone ? member.phone.replace(/[^0-9]/g, '') : '';
-    let msg = `Hi ${member.name}! 👋\nSunday Collection Reminder for *${state.groupName || 'Isthooi Savings Group'}* (Week ${selectedWeek}):\n`;
+    let msg = `Hi ${member.name}! 👋\nSunday Contribution Reminder for *${state.groupName || 'Isthooi Savings Group'}* (Week ${selectedWeek}):\n`;
     msg += `• Regular Contribution: ₹${regularAmount}\n`;
-    if (loanInstallment > 0) {
-      msg += `• Loan Installment (${loanNickname || 'Loan'}): ₹${loanInstallment}\n`;
-    }
-    msg += `👉 *Total Due Today: ₹${totalDue}*\n`;
+    msg += `👉 *Due Today: ₹${regularAmount}*\n`;
     if (unpaidWeeksCount > 1) {
       msg += `⚠️ Note: You have ${unpaidWeeksCount} unpaid weeks. Please clear dues to avoid exceeding 3-week limit!\n`;
     }
@@ -45,7 +39,6 @@ export default function SundayLedger({
     window.open(waUrl, '_blank');
   };
 
-  // Filter members list
   const filteredMembers = state.members.filter((m) => {
     const isPaid = weekData.collections[m.id]?.paid || false;
     if (filterMode === 'UNPAID') return !isPaid;
@@ -96,7 +89,7 @@ export default function SundayLedger({
       >
         <div>
           <h2 style={{ fontSize: '1.25rem', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '10px' }}>
-            Sunday Ledger — Week {selectedWeek}
+            Sunday Contributions — Week {selectedWeek}
             {weekData.ceased && (
               <span className="status-badge" style={{ background: '#6b7280', color: '#f3f4f6', fontSize: '0.75rem' }}>
                 🔒 CEASED
@@ -109,11 +102,11 @@ export default function SundayLedger({
           </p>
         </div>
 
-        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
           <button
             className="btn btn-secondary btn-sm"
             onClick={() => setFilterMode(filterMode === 'ALL' ? 'UNPAID' : 'ALL')}
-            disabled={weekData.ceased}
+            disabled={weekData.ceased || editLocked}
           >
             <Filter size={14} /> Filter: {filterMode}
           </button>
@@ -121,44 +114,25 @@ export default function SundayLedger({
           <button
             className="btn btn-primary btn-sm"
             onClick={() => onMarkAllPaid(selectedWeek)}
-            disabled={weekData.ceased}
+            disabled={weekData.ceased || editLocked}
           >
             <CheckSquare size={16} /> Mark All Paid
           </button>
 
-          {!weekData.ceased ? (
-            <button
-              className="btn btn-sm"
-              style={{ background: '#dc2626', color: 'white' }}
-              onClick={() => setShowCeaseConfirm(true)}
-              title="Lock this week from further edits"
-            >
-              🔒 Cease Week
-            </button>
-          ) : (
-            <button
-              className="btn btn-sm"
-              style={{ background: '#6b7280', color: 'white', cursor: 'not-allowed' }}
-              disabled
-            >
-              ✓ Week Ceased
-            </button>
+          {editLocked && (
+            <span style={{ fontSize: '0.85rem', color: '#ef4444', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Lock size={14} /> Editing Locked
+            </span>
           )}
         </div>
       </div>
 
-      {/* 10 Members Collection Cards */}
+      {/* Members Collection Cards */}
       <div className="members-collection-list">
         {filteredMembers.map((member) => {
           const rec = weekData.collections[member.id] || { paid: false, paymentMethod: 'UPI' };
           const mStats = getMemberStats(state, member.id);
-
-          const activeLoan = mStats.activeLoans[0];
-          const hasActiveLoan = !!activeLoan;
-          const loanInstallment = hasActiveLoan ? activeLoan.weeklyInstallment : 0;
-          const loanNickname = hasActiveLoan ? (activeLoan.nickname || 'Loan') : '';
           const regularAmount = rec.amount || state.weeklyAmount || 1000;
-          const totalDueToday = (rec.paid ? 0 : regularAmount) + (rec.loanInstallmentPaid ? 0 : loanInstallment);
 
           return (
             <div
@@ -189,27 +163,16 @@ export default function SundayLedger({
                     ₹{regularAmount} ({rec.paid ? 'PAID' : 'DUE'})
                   </span>
                 </div>
-
-                {hasActiveLoan && (
-                  <div className="due-item" style={{ borderLeft: '1px solid rgba(255,255,255,0.1)', paddingLeft: '8px' }}>
-                    <span className="due-item-label" style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
-                      <Tag size={10} color="#fbbf24" /> {loanNickname} (Inst.)
-                    </span>
-                    <span className="due-item-val" style={{ color: rec.loanInstallmentPaid ? '#10b981' : '#f59e0b' }}>
-                      ₹{loanInstallment} ({rec.loanInstallmentPaid ? 'PAID' : 'DUE'})
-                    </span>
-                  </div>
-                )}
               </div>
 
-              {/* Payment Actions & WhatsApp */}
+              {/* Payment Actions */}
               <div className="action-group">
                 <select
                   className="form-select"
                   style={{ width: 'auto', padding: '6px 10px', fontSize: '0.8rem' }}
                   value={rec.paymentMethod || 'UPI'}
                   onChange={(e) => onChangePaymentMethod(selectedWeek, member.id, e.target.value)}
-                  disabled={weekData.ceased}
+                  disabled={weekData.ceased || editLocked}
                 >
                   <option value="UPI">UPI</option>
                   <option value="Cash">Cash</option>
@@ -219,8 +182,9 @@ export default function SundayLedger({
                 <button
                   className={`btn btn-toggle-paid ${rec.paid ? 'paid' : 'unpaid'}`}
                   onClick={() => onTogglePayment(selectedWeek, member.id)}
-                  disabled={weekData.ceased}
-                  style={weekData.ceased ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
+                  disabled={weekData.ceased || editLocked}
+                  style={(weekData.ceased || editLocked) ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
+                  title={editLocked ? '🔒 Editing is locked' : weekData.ceased ? 'Week is ceased' : 'Mark payment'}
                 >
                   {rec.paid ? <CheckCircle2 size={16} /> : null}
                   {rec.paid ? 'PAID ₹1,000' : 'MARK ₹1k PAID'}
@@ -228,43 +192,20 @@ export default function SundayLedger({
 
                 <button
                   className="btn btn-sm"
-                  style={{ background: '#8b5cf6', color: 'white', opacity: weekData.ceased ? 0.5 : 1, cursor: weekData.ceased ? 'not-allowed' : 'pointer' }}
-                  onClick={() => setAdvancePaymentModal({ memberId: member.id, type: 'regular', method: rec.paymentMethod || 'UPI' })}
-                  disabled={weekData.ceased}
-                  title={weekData.ceased ? "Week is ceased - no edits allowed" : "Pay multiple weeks in advance with custom amount"}
+                  style={{ background: '#8b5cf6', color: 'white', opacity: (weekData.ceased || editLocked) ? 0.5 : 1, cursor: (weekData.ceased || editLocked) ? 'not-allowed' : 'pointer' }}
+                  onClick={() => setAdvancePaymentModal({ memberId: member.id })}
+                  disabled={weekData.ceased || editLocked}
+                  title={editLocked ? '🔒 Editing is locked' : weekData.ceased ? "Week is ceased - no edits allowed" : "Pay multiple weeks in advance with custom amount"}
                 >
                   <Clock size={14} /> Advance Pay
                 </button>
 
-                {hasActiveLoan && (
-                  <>
-                    <button
-                      className={`btn btn-sm ${rec.loanInstallmentPaid ? 'btn-primary' : 'btn-gold'}`}
-                      onClick={() => onToggleLoanInstallment(selectedWeek, member.id, activeLoan.id)}
-                      disabled={weekData.ceased}
-                      style={weekData.ceased ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
-                    >
-                      {rec.loanInstallmentPaid ? 'Loan Inst. Paid' : `Pay ${loanNickname} ₹${loanInstallment}`}
-                    </button>
-
-                    <button
-                      className="btn btn-sm"
-                      style={{ background: '#8b5cf6', color: 'white', opacity: weekData.ceased ? 0.5 : 1, cursor: weekData.ceased ? 'not-allowed' : 'pointer' }}
-                      onClick={() => setAdvancePaymentModal({ memberId: member.id, type: 'loan', loanId: activeLoan.id })}
-                      disabled={weekData.ceased}
-                      title={weekData.ceased ? "Week is ceased - no edits allowed" : "Pay multiple weeks of loan in advance"}
-                    >
-                      <Clock size={14} /> Loan Advance
-                    </button>
-                  </>
-                )}
-
                 <button
                   className="btn btn-whatsapp"
-                  onClick={() => handleSendWhatsApp(member, regularAmount, loanInstallment, loanNickname, totalDueToday, mStats.unpaidPastWeeks)}
-                  title={weekData.ceased ? "Week is ceased" : "Send WhatsApp Reminder"}
-                  disabled={weekData.ceased}
-                  style={weekData.ceased ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
+                  onClick={() => handleSendWhatsApp(member, regularAmount, mStats.unpaidPastWeeks)}
+                  title={editLocked ? '🔒 Editing is locked' : weekData.ceased ? "Week is ceased" : "Send WhatsApp Reminder"}
+                  disabled={weekData.ceased || editLocked}
+                  style={(weekData.ceased || editLocked) ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
                 >
                   <MessageCircle size={16} /> WhatsApp
                 </button>
@@ -274,59 +215,10 @@ export default function SundayLedger({
         })}
       </div>
 
-      {/* Cease Week Confirmation Modal */}
-      {showCeaseConfirm && (
-        <div className="modal-overlay" onClick={() => setShowCeaseConfirm(false)}>
-          <div className="modal-content" style={{ maxWidth: '400px' }} onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3 style={{ fontSize: '1.25rem', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                🔒 Cease Week {selectedWeek}?
-              </h3>
-              <button className="modal-close" onClick={() => setShowCeaseConfirm(false)}>×</button>
-            </div>
-
-            <div style={{ marginBottom: '16px', fontSize: '0.95rem', color: '#e5e7eb', lineHeight: '1.6' }}>
-              <p style={{ marginBottom: '12px' }}>
-                Once a week is ceased, <strong>all payment records become locked</strong> and cannot be edited.
-              </p>
-              <p style={{ marginBottom: '12px' }}>
-                <strong>Week {selectedWeek}</strong> ({weekData.displayDate}) will be marked as finalized.
-              </p>
-              <p style={{ color: '#fca5a5' }}>
-                ⚠️ This action cannot be undone. Make sure all payments and amounts are correct before proceeding.
-              </p>
-            </div>
-
-            <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
-              <button
-                className="btn btn-secondary"
-                onClick={() => setShowCeaseConfirm(false)}
-              >
-                Cancel
-              </button>
-              <button
-                className="btn"
-                style={{ background: '#dc2626', color: 'white' }}
-                onClick={() => {
-                  onCeaseWeek(selectedWeek);
-                  setShowCeaseConfirm(false);
-                }}
-              >
-                🔒 Confirm & Cease Week
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Advance Payment Modal */}
       {advancePaymentModal && (() => {
         const member = state.members.find(m => m.id === advancePaymentModal.memberId);
-        const mStats = getMemberStats(state, advancePaymentModal.memberId);
-        const weeklyAmount = advancePaymentModal.type === 'regular'
-          ? (state.weeklyAmount || 1000)
-          : (mStats.activeLoans[0]?.weeklyInstallment || 1000);
-
+        const weeklyAmount = state.weeklyAmount || 1000;
         const weeksToFill = Math.floor(advanceAmount / weeklyAmount);
         const remainderAmount = advanceAmount % weeklyAmount;
 
@@ -336,7 +228,7 @@ export default function SundayLedger({
               <div className="modal-header">
                 <h3 style={{ fontSize: '1.25rem', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <Clock size={20} color="#8b5cf6" />
-                  {advancePaymentModal.type === 'regular' ? 'Advance Sunday Contribution' : 'Advance Loan Installment'} - {member?.name}
+                  Advance Sunday Contribution - {member?.name}
                 </h3>
                 <button className="modal-close" onClick={() => setAdvancePaymentModal(null)}>×</button>
               </div>
@@ -350,7 +242,6 @@ export default function SundayLedger({
                   onChange={(e) => {
                     const val = parseInt(e.target.value) || 0;
                     setAdvanceAmount(val);
-                    setAdvanceDistribution({});
                   }}
                   className="form-input"
                   placeholder="Enter amount"
@@ -367,7 +258,6 @@ export default function SundayLedger({
                 </div>
               </div>
 
-              {/* Week Distribution Preview */}
               <div style={{ marginBottom: '16px' }}>
                 <label className="form-label">Coverage (Weeks {selectedWeek} onwards):</label>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -393,7 +283,6 @@ export default function SundayLedger({
                   onClick={() => {
                     setAdvancePaymentModal(null);
                     setAdvanceAmount(5000);
-                    setAdvanceDistribution({});
                   }}
                 >
                   Cancel
@@ -402,14 +291,9 @@ export default function SundayLedger({
                   type="button"
                   className="btn btn-primary"
                   onClick={() => {
-                    if (advancePaymentModal.type === 'regular') {
-                      onAdvancePayment(selectedWeek, advancePaymentModal.memberId, advanceAmount, advancePaymentModal.method);
-                    } else {
-                      onAdvanceLoanInstallment(selectedWeek, advancePaymentModal.memberId, advancePaymentModal.loanId, advanceAmount);
-                    }
+                    onAdvancePayment(selectedWeek, advancePaymentModal.memberId, advanceAmount, 'UPI');
                     setAdvancePaymentModal(null);
                     setAdvanceAmount(5000);
-                    setAdvanceDistribution({});
                   }}
                   disabled={advanceAmount <= 0}
                 >

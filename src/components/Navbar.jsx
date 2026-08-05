@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, Calendar, HandCoins, Award, Users, AlertTriangle, Download } from 'lucide-react';
+import { LayoutDashboard, Calendar, HandCoins, Award, Users, AlertTriangle, Download, Settings as SettingsIcon } from 'lucide-react';
 
 export default function Navbar({ activeTab, setActiveTab, groupStats }) {
   return (
@@ -45,11 +45,19 @@ export default function Navbar({ activeTab, setActiveTab, groupStats }) {
         </button>
 
         <button
-          className={`nav-item ${activeTab === 'ledger' ? 'active' : ''}`}
-          onClick={() => setActiveTab('ledger')}
+          className={`nav-item ${activeTab === 'contributions' ? 'active' : ''}`}
+          onClick={() => setActiveTab('contributions')}
         >
           <Calendar size={18} />
-          <span>Sunday Ledger</span>
+          <span>Contributions</span>
+        </button>
+
+        <button
+          className={`nav-item ${activeTab === 'loan-collections' ? 'active' : ''}`}
+          onClick={() => setActiveTab('loan-collections')}
+        >
+          <HandCoins size={18} />
+          <span>Loan Collections</span>
         </button>
 
         <button
@@ -91,6 +99,14 @@ export default function Navbar({ activeTab, setActiveTab, groupStats }) {
           <Download size={18} />
           <span>Backup</span>
         </button>
+
+        <button
+          className={`nav-item ${activeTab === 'settings' ? 'active' : ''}`}
+          onClick={() => setActiveTab('settings')}
+        >
+          <SettingsIcon size={18} />
+          <span>Settings</span>
+        </button>
       </nav>
 
       {/* Mobile Bottom Navigation Bar */}
@@ -104,11 +120,11 @@ export default function Navbar({ activeTab, setActiveTab, groupStats }) {
         </button>
 
         <button
-          className={`mobile-nav-btn ${activeTab === 'ledger' ? 'active' : ''}`}
-          onClick={() => setActiveTab('ledger')}
+          className={`mobile-nav-btn ${activeTab === 'contributions' ? 'active' : ''}`}
+          onClick={() => setActiveTab('contributions')}
         >
           <Calendar size={20} />
-          <span>Sunday</span>
+          <span>Contrib</span>
         </button>
 
         <button
