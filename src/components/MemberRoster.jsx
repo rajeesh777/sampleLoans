@@ -4,7 +4,7 @@ import { getMemberStats } from '../utils/storage';
 
 export default function MemberRoster({ state }) {
   const [selectedMemberForLedger, setSelectedMemberForLedger] = useState(null);
-  const [ledgerSortBy, setLedgerSortBy] = useState('week-desc'); // week-asc, week-desc, status, amount
+  const [ledgerSortBy, setLedgerSortBy] = useState('week-asc'); // week-asc, week-desc, status, amount
   const [ledgerFilterMode, setLedgerFilterMode] = useState('ALL'); // ALL, PAID, UNPAID
   const [ledgerLoanFilter, setLedgerLoanFilter] = useState('ALL'); // ALL or loan nickname
   const [selectedLoanForDetails, setSelectedLoanForDetails] = useState(null);
