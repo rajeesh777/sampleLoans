@@ -120,7 +120,11 @@ export default function LoanCollections({
             <>
               <button
                 className="btn btn-secondary btn-sm"
-                onClick={() => setFilterMode(filterMode === 'ALL' ? 'UNPAID' : 'ALL')}
+                onClick={() => {
+                  if (filterMode === 'ALL') setFilterMode('UNPAID');
+                  else if (filterMode === 'UNPAID') setFilterMode('PAID');
+                  else setFilterMode('ALL');
+                }}
                 disabled={weekData.ceased || editLocked}
               >
                 <Filter size={14} /> Filter: {filterMode}

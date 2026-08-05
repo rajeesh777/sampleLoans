@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Users, Phone, CreditCard, CheckCircle2, AlertCircle, Zap, TrendingUp, BookOpen, X } from 'lucide-react';
 import { getMemberStats } from '../utils/storage';
 
@@ -9,6 +9,16 @@ export default function MemberRoster({ state }) {
   const [ledgerLoanFilter, setLedgerLoanFilter] = useState('ALL'); // ALL or loan nickname
   const [selectedLoanForDetails, setSelectedLoanForDetails] = useState(null);
   const [ledgerSubPage, setLedgerSubPage] = useState('contributions'); // 'contributions' or 'loans'
+
+  // Reset filters when opening a new member's ledger
+  useEffect(() => {
+    if (selectedMemberForLedger) {
+      setLedgerSortBy('week-desc');
+      setLedgerFilterMode('ALL');
+      setLedgerLoanFilter('ALL');
+      setLedgerSubPage('contributions');
+    }
+  }, [selectedMemberForLedger?.id]);
 
   const getMemberLedger = (memberId) => {
     const ledger = [];
@@ -65,11 +75,17 @@ export default function MemberRoster({ state }) {
     return ledger;
   };
 
+  const LOAN_COLORS = ['#ef4444', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ec4899'];
+
+  const getLoanColor = (loanId) => {
+    const hash = loanId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    return LOAN_COLORS[hash % LOAN_COLORS.length];
+  };
+
   const getMemberAvailableLoanNicknames = (memberId) => {
-    return state.loans
-      .filter(l => l.memberId === memberId)
-      .map(l => l.nickname || 'Loan')
-      .filter((v, i, a) => a.indexOf(v) === i); // unique
+    const loans = state.loans.filter(l => l.memberId === memberId);
+    return [...new Map(loans.map(l => [l.nickname || 'Loan', l])).entries()]
+      .map(([nickname, loan]) => ({ nickname, loanId: loan.id }));
   };
 
   return (
@@ -405,7 +421,10 @@ ${isAdvance ? `Note: Advance payment` : ''}`;
             {/* Ledger Tabs */}
             <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', borderBottom: '2px solid rgba(255,255,255,0.1)' }}>
               <button
-                onClick={() => setLedgerSubPage('contributions')}
+                onClick={() => {
+                  setLedgerSubPage('contributions');
+                  setLedgerFilterMode('ALL');
+                }}
                 style={{
                   padding: '12px 16px',
                   fontSize: '0.9rem',
@@ -421,7 +440,11 @@ ${isAdvance ? `Note: Advance payment` : ''}`;
                 📊 Contributions
               </button>
               <button
-                onClick={() => setLedgerSubPage('loans')}
+                onClick={() => {
+                  setLedgerSubPage('loans');
+                  setLedgerFilterMode('ALL');
+                  setLedgerLoanFilter('ALL');
+                }}
                 style={{
                   padding: '12px 16px',
                   fontSize: '0.9rem',
@@ -624,8 +647,10 @@ ${isAdvance ? `Note: Advance payment` : ''}`;
                         }}
                       >
                         <option value="ALL">All Loans</option>
-                        {getMemberAvailableLoanNicknames(selectedMemberForLedger.id).map((nickname) => (
-                          <option key={nickname} value={nickname}>{nickname}</option>
+                        {getMemberAvailableLoanNicknames(selectedMemberForLedger.id).map(({ nickname, loanId }) => (
+                          <option key={loanId} value={nickname} style={{ borderLeft: `4px solid ${getLoanColor(loanId)}` }}>
+                            ● {nickname}
+                          </option>
                         ))}
                       </select>
                     </div>
@@ -665,7 +690,7 @@ ${isAdvance ? `Note: Advance payment` : ''}`;
 
                         // Apply loan nickname filter
                         if (ledgerLoanFilter !== 'ALL') {
-                          ledger = ledger.filter(e => e.loanNickname === ledgerLoanFilter);
+                          ledger = ledger.filter(e => (e.loanNickname || '').trim() === (ledgerLoanFilter || '').trim());
                         }
 
                         // Apply sort
@@ -687,7 +712,7 @@ ${isAdvance ? `Note: Advance payment` : ''}`;
                           </tr>
                         ) : (
                           ledger.map((entry) => (
-                            <tr key={entry.weekNum} style={{ borderBottom: '1px solid rgba(255,255,255,0.1)', background: entry.weekNum === state.currentWeekNum ? 'rgba(245, 158, 11, 0.05)' : 'transparent' }}>
+                            <tr key={entry.loanId ? `${entry.weekNum}-${entry.loanId}` : entry.weekNum} style={{ borderBottom: '1px solid rgba(255,255,255,0.1)', borderLeft: entry.loanId ? `4px solid ${getLoanColor(entry.loanId)}` : 'none', background: entry.weekNum === state.currentWeekNum ? 'rgba(245, 158, 11, 0.05)' : 'transparent' }}>
                               <td style={{ padding: '12px', fontWeight: '600', color: '#60a5fa' }}>Week {entry.weekNum}</td>
                               <td style={{ padding: '12px', color: '#cbd5e1' }}>{entry.displayDate}</td>
                               <td style={{ padding: '12px', textAlign: 'center' }}>
@@ -714,22 +739,24 @@ ${isAdvance ? `Note: Advance payment` : ''}`;
                                     }
                                   }}
                                   style={{
-                                    background: 'rgba(245, 158, 11, 0.2)',
-                                    padding: '4px 8px',
-                                    borderRadius: '4px',
-                                    border: '1px solid #f59e0b',
-                                    color: '#fbbf24',
+                                    background: `${getLoanColor(entry.loanId)}20`,
+                                    padding: '6px 12px',
+                                    borderRadius: '6px',
+                                    border: `2px solid ${getLoanColor(entry.loanId)}`,
+                                    color: getLoanColor(entry.loanId),
                                     fontWeight: '600',
                                     cursor: 'pointer',
                                     transition: 'all 0.2s'
                                   }}
                                   onMouseEnter={(e) => {
-                                    e.currentTarget.style.background = 'rgba(245, 158, 11, 0.3)';
-                                    e.currentTarget.style.borderColor = '#fbbf24';
+                                    const color = getLoanColor(entry.loanId);
+                                    e.currentTarget.style.background = `${color}40`;
+                                    e.currentTarget.style.borderColor = color;
                                   }}
                                   onMouseLeave={(e) => {
-                                    e.currentTarget.style.background = 'rgba(245, 158, 11, 0.2)';
-                                    e.currentTarget.style.borderColor = '#f59e0b';
+                                    const color = getLoanColor(entry.loanId);
+                                    e.currentTarget.style.background = `${color}20`;
+                                    e.currentTarget.style.borderColor = color;
                                   }}
                                   title="Click to view loan details"
                                 >
