@@ -48,7 +48,7 @@ export default function MemberRoster({ state }) {
               paymentMethod: collection?.paymentMethod || 'UPI',
               paidAt: collection?.paidAt || null,
               loanPaid: collection?.loanInstallmentPaid || false,
-              loanAmount: collection?.loanInstallmentAmount || 0,
+              loanAmount: activeLoan.weeklyInstallment,
               loanPaidAt: collection?.loanInstallmentPaidAt || null,
               loanNickname: activeLoan.nickname || 'Loan',
               loanId: activeLoan.id
@@ -65,7 +65,7 @@ export default function MemberRoster({ state }) {
             paymentMethod: collection?.paymentMethod || 'UPI',
             paidAt: collection?.paidAt || null,
             loanPaid: collection?.loanInstallmentPaid || false,
-            loanAmount: collection?.loanInstallmentAmount || 0,
+            loanAmount: 0,
             loanPaidAt: collection?.loanInstallmentPaidAt || null,
             loanNickname: ''
           });
@@ -681,11 +681,12 @@ ${isAdvance ? `Note: Advance payment` : ''}`;
                         // Filter to only show weeks with loan installments
                         ledger = ledger.filter(e => e.loanNickname);
 
-                        // Apply filter
-                        if (ledgerFilterMode === 'LOAN_PAID') {
-                          ledger = ledger.filter(e => e.loanPaid);
-                        } else if (ledgerFilterMode === 'UNPAID') {
+                        // Apply filter - default to showing only paid loans
+                        if (ledgerFilterMode === 'UNPAID') {
                           ledger = ledger.filter(e => !e.loanPaid);
+                        } else {
+                          // Default to LOAN_PAID for loans tab
+                          ledger = ledger.filter(e => e.loanPaid);
                         }
 
                         // Apply loan nickname filter
