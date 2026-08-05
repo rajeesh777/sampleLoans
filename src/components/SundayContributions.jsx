@@ -15,6 +15,8 @@ export default function SundayContributions({
   const [filterMode, setFilterMode] = useState('ALL');
   const [advancePaymentModal, setAdvancePaymentModal] = useState(null);
   const [advanceAmount, setAdvanceAmount] = useState(5000);
+  const [duesPaymentModal, setDuesPaymentModal] = useState(null);
+  const [duesPaymentAmount, setDuesPaymentAmount] = useState(0);
   const [showCeaseConfirm, setShowCeaseConfirm] = useState(false);
 
   const weekData = state.weeks[selectedWeek] || { collections: {} };
@@ -197,12 +199,13 @@ export default function SundayContributions({
                       className="btn btn-sm"
                       style={{ background: '#ef4444', color: 'white', flex: 1, fontSize: '0.85rem' }}
                       onClick={() => {
-                        dueWeeks.forEach((due) => onTogglePayment(due.weekNum, member.id));
+                        setDuesPaymentModal({ memberId: member.id, dueWeeks });
+                        setDuesPaymentAmount(totalDuesAmount);
                       }}
                       disabled={weekData.ceased || editLocked}
-                      title={editLocked ? '🔒 Editing is locked' : 'Pay all pending dues'}
+                      title={editLocked ? '🔒 Editing is locked' : 'Pay pending dues (full or partial)'}
                     >
-                      <CheckCircle2 size={14} /> Pay All Dues (₹{totalDuesAmount})
+                      <CheckCircle2 size={14} /> Pay Dues
                     </button>
                   </div>
                 </div>
@@ -267,6 +270,120 @@ export default function SundayContributions({
           );
         })}
       </div>
+
+      {/* Dues Payment Modal */}
+      {duesPaymentModal && (() => {
+        const member = state.members.find(m => m.id === duesPaymentModal.memberId);
+        const dueWeeks = duesPaymentModal.dueWeeks;
+        const totalDuesAmount = dueWeeks.reduce((sum, d) => sum + d.amount, 0);
+        const weeklyAmount = state.weeklyAmount || 1000;
+
+        // Calculate which weeks will be paid with the entered amount
+        let weeksBeingPaid = [];
+        let remainingAmount = duesPaymentAmount;
+        for (let i = 0; i < dueWeeks.length && remainingAmount > 0; i++) {
+          const due = dueWeeks[i];
+          const amountForThisWeek = Math.min(remainingAmount, due.amount);
+          weeksBeingPaid.push({
+            weekNum: due.weekNum,
+            displayDate: due.displayDate,
+            amount: amountForThisWeek,
+            fullPayment: amountForThisWeek === due.amount
+          });
+          remainingAmount -= amountForThisWeek;
+        }
+
+        return (
+          <div className="modal-overlay" onClick={() => {
+            setDuesPaymentModal(null);
+            setDuesPaymentAmount(0);
+          }}>
+            <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '500px' }}>
+              <div className="modal-header">
+                <h3 style={{ fontSize: '1.25rem', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Clock size={20} color="#ef4444" />
+                  Pay Pending Dues - {member?.name}
+                </h3>
+                <button className="modal-close" onClick={() => {
+                  setDuesPaymentModal(null);
+                  setDuesPaymentAmount(0);
+                }}>×</button>
+              </div>
+
+              <div style={{ marginBottom: '16px' }}>
+                <label className="form-label">Amount to Pay (₹) — Total Due: ₹{totalDuesAmount}</label>
+                <input
+                  type="number"
+                  min="0"
+                  max={totalDuesAmount}
+                  value={duesPaymentAmount}
+                  onChange={(e) => {
+                    const val = Math.min(parseInt(e.target.value) || 0, totalDuesAmount);
+                    setDuesPaymentAmount(val);
+                  }}
+                  className="form-input"
+                  placeholder="Enter amount"
+                />
+              </div>
+
+              <div style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid #ef4444', borderRadius: '8px', padding: '12px', marginBottom: '16px' }}>
+                <div style={{ fontSize: '0.9rem', color: '#fca5a5', marginBottom: '8px' }}>
+                  <strong>Payment will clear:</strong>
+                </div>
+                {weeksBeingPaid.length > 0 ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    {weeksBeingPaid.map((wpay) => (
+                      <div key={wpay.weekNum} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: '#fca5a5', paddingBottom: '6px', borderBottom: '1px solid rgba(239, 68, 68, 0.3)' }}>
+                        <span>
+                          Week {wpay.weekNum} ({wpay.displayDate})
+                          {!wpay.fullPayment && <span style={{ color: '#fca5a5', fontSize: '0.8rem' }}> (partial)</span>}
+                        </span>
+                        <span style={{ fontWeight: '600' }}>₹{wpay.amount}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div style={{ color: '#fca5a5', fontSize: '0.85rem' }}>Enter an amount to see which weeks will be cleared</div>
+                )}
+              </div>
+
+              {duesPaymentAmount < totalDuesAmount && duesPaymentAmount > 0 && (
+                <div style={{ background: 'rgba(251, 146, 60, 0.1)', border: '1px solid #fb923c', borderRadius: '8px', padding: '10px', marginBottom: '16px', fontSize: '0.85rem', color: '#fca5a5' }}>
+                  Remaining dues: ₹{totalDuesAmount - duesPaymentAmount}
+                </div>
+              )}
+
+              <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => {
+                    setDuesPaymentModal(null);
+                    setDuesPaymentAmount(0);
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={() => {
+                    weeksBeingPaid.forEach((wpay) => {
+                      onTogglePayment(wpay.weekNum, duesPaymentModal.memberId);
+                    });
+                    setDuesPaymentModal(null);
+                    setDuesPaymentAmount(0);
+                  }}
+                  disabled={duesPaymentAmount <= 0}
+                  style={{ background: '#ef4444' }}
+                >
+                  Pay ₹{duesPaymentAmount}
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Advance Payment Modal */}
       {advancePaymentModal && (() => {
