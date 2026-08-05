@@ -5,7 +5,6 @@ import Dashboard from './components/Dashboard';
 import SundayLedger from './components/SundayLedger';
 import SundayContributions from './components/SundayContributions';
 import LoanCollections from './components/LoanCollections';
-import LoanManager from './components/LoanManager';
 import AnnualSettlement from './components/AnnualSettlement';
 import MemberRoster from './components/MemberRoster';
 import Settings from './components/Settings';
@@ -494,11 +493,13 @@ export default function App() {
         {activeTab === 'loan-collections' && (
           <LoanCollections
             state={state}
+            groupStats={groupStats}
             editLocked={state.editLocked}
             onToggleLoanInstallment={handleToggleLoanInstallment}
             onMarkAllPaid={handleMarkAllPaid}
             onAdvanceLoanInstallment={handleAdvanceLoanInstallment}
             onCeaseWeek={handleCeaseWeek}
+            onCreateLoan={handleCreateLoan}
           />
         )}
 
@@ -512,15 +513,6 @@ export default function App() {
             onAdvancePayment={handleAdvancePayment}
             onAdvanceLoanInstallment={handleAdvanceLoanInstallment}
             onCeaseWeek={handleCeaseWeek}
-          />
-        )}
-
-        {activeTab === 'loans' && (
-          <LoanManager
-            state={state}
-            groupStats={groupStats}
-            onCreateLoan={handleCreateLoan}
-            onRepayLoanExtra={handleRepayLoanExtra}
           />
         )}
 

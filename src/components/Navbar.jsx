@@ -1,7 +1,7 @@
 import React from 'react';
 import { LayoutDashboard, Calendar, HandCoins, Award, Users, AlertTriangle, Download, Settings as SettingsIcon, LogOut } from 'lucide-react';
 
-export default function Navbar({ activeTab, setActiveTab, groupStats, loggedInMember, onLogout }) {
+export default function Navbar({ activeTab, setActiveTab, groupStats, loggedInMember, onLogout, memberCount, weeklyAmount }) {
   return (
     <>
       {/* Top Header */}
@@ -12,7 +12,7 @@ export default function Navbar({ activeTab, setActiveTab, groupStats, loggedInMe
           </div>
           <div>
             <h1 className="brand-title">Isthooi</h1>
-            <div className="brand-subtitle">10 Members • ₹1,000 / Sunday</div>
+            <div className="brand-subtitle">{memberCount || 10} Members • ₹{weeklyAmount || 1000} / Sunday</div>
           </div>
         </div>
 
@@ -95,22 +95,6 @@ export default function Navbar({ activeTab, setActiveTab, groupStats, loggedInMe
         </button>
 
         <button
-          className={`nav-item ${activeTab === 'loans' ? 'active' : ''}`}
-          onClick={() => setActiveTab('loans')}
-        >
-          <HandCoins size={18} />
-          <span>Loans (10% Fee)</span>
-        </button>
-
-        <button
-          className={`nav-item ${activeTab === 'defaulters' ? 'active' : ''}`}
-          onClick={() => setActiveTab('defaulters')}
-        >
-          <AlertTriangle size={18} />
-          <span>3-Wk Rules</span>
-        </button>
-
-        <button
           className={`nav-item ${activeTab === 'settlement' ? 'active' : ''}`}
           onClick={() => setActiveTab('settlement')}
         >
@@ -124,14 +108,6 @@ export default function Navbar({ activeTab, setActiveTab, groupStats, loggedInMe
         >
           <Users size={18} />
           <span>Members</span>
-        </button>
-
-        <button
-          className={`nav-item ${activeTab === 'export' ? 'active' : ''}`}
-          onClick={() => setActiveTab('export')}
-        >
-          <Download size={18} />
-          <span>Backup</span>
         </button>
 
         <button
@@ -159,22 +135,6 @@ export default function Navbar({ activeTab, setActiveTab, groupStats, loggedInMe
         >
           <Calendar size={20} />
           <span>Contrib</span>
-        </button>
-
-        <button
-          className={`mobile-nav-btn ${activeTab === 'loans' ? 'active' : ''}`}
-          onClick={() => setActiveTab('loans')}
-        >
-          <HandCoins size={20} />
-          <span>Loans</span>
-        </button>
-
-        <button
-          className={`mobile-nav-btn ${activeTab === 'defaulters' ? 'active' : ''}`}
-          onClick={() => setActiveTab('defaulters')}
-        >
-          <AlertTriangle size={20} />
-          <span>Alerts</span>
         </button>
 
         <button

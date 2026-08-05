@@ -73,8 +73,8 @@ export default function AnnualSettlement({ state, groupStats }) {
           <div className="metric-label">
             <IndianRupee size={14} /> Total Base Pool Target
           </div>
-          <div className="metric-value">₹{(520000).toLocaleString('en-IN')}</div>
-          <div className="metric-subtext">52 Wks × 10 Members × ₹1k</div>
+          <div className="metric-value">₹{(52 * state.members.length * (state.weeklyAmount || 1000)).toLocaleString('en-IN')}</div>
+          <div className="metric-subtext">52 Wks × {state.members.length} Members × ₹{state.weeklyAmount || 1000}</div>
         </div>
 
         <div className="metric-card gold">

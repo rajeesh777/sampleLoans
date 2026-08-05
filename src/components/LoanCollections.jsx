@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Calendar, CheckCircle2, CheckSquare, Clock, Filter, Tag, Lock } from 'lucide-react';
+import { Calendar, CheckCircle2, CheckSquare, Clock, Filter, Tag, Lock, Plus } from 'lucide-react';
 import { getMemberStats, formatDateDDMMYY } from '../utils/storage';
 
 export default function LoanCollections({
@@ -8,7 +8,8 @@ export default function LoanCollections({
   onToggleLoanInstallment,
   onMarkAllPaid,
   onAdvanceLoanInstallment,
-  onCeaseWeek
+  onCeaseWeek,
+  onCreateLoan
 }) {
   const [selectedWeek, setSelectedWeek] = useState(state.currentWeekNum || 1);
   const [filterMode, setFilterMode] = useState('ALL');
@@ -16,6 +17,12 @@ export default function LoanCollections({
   const [loanPaymentAmount, setLoanPaymentAmount] = useState(0);
   const [showCeaseConfirm, setShowCeaseConfirm] = useState(false);
   const [viewMode, setViewMode] = useState('active'); // 'active' or 'closed'
+  const [loanRequestModal, setLoanRequestModal] = useState(false);
+  const [loanForm, setLoanForm] = useState({
+    memberId: '',
+    nickname: '',
+    requestedAmount: 10000
+  });
 
   const weekData = state.weeks[selectedWeek] || { collections: {} };
 
@@ -125,6 +132,15 @@ export default function LoanCollections({
                 disabled={weekData.ceased || editLocked}
               >
                 <CheckSquare size={16} /> Mark All Paid
+              </button>
+
+              <button
+                className="btn btn-sm"
+                style={{ background: '#8b5cf6', color: 'white' }}
+                onClick={() => setLoanRequestModal(true)}
+                disabled={editLocked}
+              >
+                ➕ Request New Loan
               </button>
             </>
           )}
@@ -410,6 +426,138 @@ export default function LoanCollections({
                   disabled={loanPaymentAmount <= 0}
                 >
                   Pay ₹{loanPaymentAmount.toLocaleString('en-IN')}
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Loan Request Modal */}
+      {loanRequestModal && (() => {
+        const requestedAmount = loanForm.requestedAmount || 0;
+        const upfrontFee = Math.round(requestedAmount * 0.1);
+        const disbursedAmount = requestedAmount - upfrontFee;
+        const termWeeks = 10;
+        const weeklyInstallment = Math.ceil(requestedAmount / termWeeks);
+        const selectedMember = state.members.find(m => m.id === loanForm.memberId);
+        const memberStats = selectedMember ? getMemberStats(state, loanForm.memberId) : null;
+        const eligibility = memberStats ? !memberStats.isBlocked && memberStats.unpaidPastWeeks <= 2 : false;
+
+        return (
+          <div className="modal-overlay" onClick={() => setLoanRequestModal(false)}>
+            <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '500px' }}>
+              <div className="modal-header">
+                <h3 style={{ fontSize: '1.25rem', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Plus size={20} color="#8b5cf6" />
+                  Request New Loan
+                </h3>
+                <button className="modal-close" onClick={() => setLoanRequestModal(false)}>×</button>
+              </div>
+
+              <div style={{ marginBottom: '16px' }}>
+                <label className="form-label">Select Member</label>
+                <select
+                  value={loanForm.memberId}
+                  onChange={(e) => setLoanForm({ ...loanForm, memberId: e.target.value })}
+                  className="form-input"
+                  style={{ padding: '8px' }}
+                >
+                  <option value="">-- Choose a member --</option>
+                  {state.members.map(m => {
+                    const mStats = getMemberStats(state, m.id);
+                    const blocked = mStats.isBlocked;
+                    return (
+                      <option key={m.id} value={m.id} disabled={blocked}>
+                        {m.name} {blocked ? '(Blocked)' : ''}
+                      </option>
+                    );
+                  })}
+                </select>
+              </div>
+
+              <div style={{ marginBottom: '16px' }}>
+                <label className="form-label">Loan Nickname</label>
+                <input
+                  type="text"
+                  value={loanForm.nickname}
+                  onChange={(e) => setLoanForm({ ...loanForm, nickname: e.target.value })}
+                  className="form-input"
+                  placeholder="e.g., Festival Advance, Emergency Fund"
+                />
+              </div>
+
+              <div style={{ marginBottom: '16px' }}>
+                <label className="form-label">Requested Amount (₹)</label>
+                <input
+                  type="number"
+                  min="1000"
+                  value={loanForm.requestedAmount}
+                  onChange={(e) => setLoanForm({ ...loanForm, requestedAmount: parseInt(e.target.value) || 0 })}
+                  className="form-input"
+                  placeholder="Enter amount"
+                />
+              </div>
+
+              <div style={{ background: 'rgba(139, 92, 246, 0.1)', border: '1px solid #8b5cf6', borderRadius: '8px', padding: '12px', marginBottom: '16px' }}>
+                <div style={{ fontSize: '0.9rem', color: '#c4b5fd', marginBottom: '8px' }}>
+                  <strong>Loan Breakdown:</strong>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: '#c4b5fd', paddingBottom: '6px', borderBottom: '1px solid rgba(139, 92, 246, 0.3)' }}>
+                  <span>Requested Amount</span>
+                  <span style={{ fontWeight: '600' }}>₹{requestedAmount.toLocaleString('en-IN')}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: '#c4b5fd', paddingBottom: '6px', borderBottom: '1px solid rgba(139, 92, 246, 0.3)' }}>
+                  <span>Group Profit (10% fee)</span>
+                  <span style={{ fontWeight: '600', color: '#fbbf24' }}>- ₹{upfrontFee.toLocaleString('en-IN')}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: '#c4b5fd', paddingBottom: '6px', borderBottom: '1px solid rgba(139, 92, 246, 0.3)' }}>
+                  <span>Disbursed Amount (90%)</span>
+                  <span style={{ fontWeight: '600', color: '#10b981' }}>₹{disbursedAmount.toLocaleString('en-IN')}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: '#c4b5fd', paddingTop: '6px' }}>
+                  <span>Weekly Installment (10 weeks)</span>
+                  <span style={{ fontWeight: '600' }}>₹{weeklyInstallment.toLocaleString('en-IN')}</span>
+                </div>
+              </div>
+
+              {selectedMember && !eligibility && (
+                <div style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid #ef4444', borderRadius: '8px', padding: '10px', marginBottom: '16px', fontSize: '0.85rem', color: '#fca5a5' }}>
+                  ❌ {selectedMember.name} is not eligible for a loan (3+ unpaid weeks)
+                </div>
+              )}
+
+              <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => setLoanRequestModal(false)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={() => {
+                    if (loanForm.memberId && loanForm.requestedAmount > 0) {
+                      onCreateLoan({
+                        memberId: loanForm.memberId,
+                        nickname: loanForm.nickname || 'Loan',
+                        requestedAmount: loanForm.requestedAmount,
+                        disbursedAmount: disbursedAmount,
+                        upfrontFee: upfrontFee,
+                        startWeekNum: selectedWeek,
+                        termWeeks: termWeeks,
+                        weeklyInstallment: weeklyInstallment
+                      });
+                      setLoanRequestModal(false);
+                      setLoanForm({ memberId: '', nickname: '', requestedAmount: 10000 });
+                    }
+                  }}
+                  disabled={!loanForm.memberId || loanForm.requestedAmount <= 0 || (selectedMember && !eligibility)}
+                  style={{ background: selectedMember && !eligibility ? '#9ca3af' : '#8b5cf6' }}
+                >
+                  Request Loan
                 </button>
               </div>
             </div>

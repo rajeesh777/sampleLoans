@@ -40,6 +40,7 @@ export default function MemberRoster({ state }) {
           paidAt: collection?.paidAt || null,
           loanPaid: collection?.loanInstallmentPaid || false,
           loanAmount: collection?.loanInstallmentAmount || 0,
+          loanPaidAt: collection?.loanInstallmentPaidAt || null,
           loanNickname: loanNickname
         });
       }
@@ -264,6 +265,14 @@ export default function MemberRoster({ state }) {
                     const weekInfo = state.weeks[weekNum];
                     const weekData = weekInfo?.collections[member.id];
                     const isPaid = weekData?.paid || false;
+                    const amount = weekData?.amount || state.weeklyAmount || 1000;
+                    const isAdvance = isPaid && amount > (state.weeklyAmount || 1000);
+
+                    const tooltipText = `Week ${weekNum}
+${weekInfo?.displayDate || 'Date not available'}
+Status: ${isPaid ? '✓ Paid' : '✗ Due'}
+Amount: ₹${amount.toLocaleString('en-IN')}
+${isAdvance ? `Note: Advance payment` : ''}`;
 
                     return (
                       <div
@@ -290,7 +299,7 @@ export default function MemberRoster({ state }) {
                         onMouseLeave={(e) => {
                           e.currentTarget.style.transform = 'scale(1)';
                         }}
-                        title={`Week ${weekNum}\n${weekInfo?.displayDate}\n${isPaid ? '✓ Paid ₹' + (weekData?.amount || state.weeklyAmount || 1000) : '✗ Unpaid'}`}
+                        title={tooltipText}
                       >
                         {weekNum}
                       </div>
@@ -471,9 +480,10 @@ export default function MemberRoster({ state }) {
                     <thead>
                       <tr style={{ background: 'rgba(16, 185, 129, 0.1)', borderBottom: '2px solid #10b981' }}>
                         <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', color: '#10b981' }}>Week</th>
-                        <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', color: '#10b981' }}>Date</th>
+                        <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', color: '#10b981' }}>Due Date</th>
                         <th style={{ padding: '12px', textAlign: 'center', fontWeight: '600', color: '#10b981' }}>Status</th>
                         <th style={{ padding: '12px', textAlign: 'center', fontWeight: '600', color: '#10b981' }}>Amount</th>
+                        <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', color: '#10b981' }}>Paid Date</th>
                         <th style={{ padding: '12px', textAlign: 'center', fontWeight: '600', color: '#10b981' }}>Method</th>
                       </tr>
                     </thead>
@@ -516,6 +526,9 @@ export default function MemberRoster({ state }) {
                             </td>
                             <td style={{ padding: '12px', textAlign: 'center', fontWeight: '600', color: entry.paid ? '#34d399' : '#f87171' }}>
                               ₹{entry.amount.toLocaleString('en-IN')}
+                            </td>
+                            <td style={{ padding: '12px', textAlign: 'left', color: entry.paidAt ? '#10b981' : '#6b7280', fontWeight: entry.paidAt ? '600' : 'normal' }}>
+                              {entry.paidAt || '-'}
                             </td>
                             <td style={{ padding: '12px', textAlign: 'center', color: '#94a3b8', fontSize: '0.8rem' }}>
                               {entry.paymentMethod || '-'}
@@ -612,10 +625,11 @@ export default function MemberRoster({ state }) {
                     <thead>
                       <tr style={{ background: 'rgba(245, 158, 11, 0.1)', borderBottom: '2px solid #f59e0b' }}>
                         <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', color: '#f59e0b' }}>Week</th>
-                        <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', color: '#f59e0b' }}>Date</th>
+                        <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', color: '#f59e0b' }}>Due Date</th>
                         <th style={{ padding: '12px', textAlign: 'center', fontWeight: '600', color: '#f59e0b' }}>Status</th>
                         <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', color: '#f59e0b' }}>Loan Name</th>
                         <th style={{ padding: '12px', textAlign: 'center', fontWeight: '600', color: '#f59e0b' }}>Amount</th>
+                        <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', color: '#f59e0b' }}>Paid Date</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -650,7 +664,7 @@ export default function MemberRoster({ state }) {
 
                         return ledger.length === 0 ? (
                           <tr>
-                            <td colSpan="5" style={{ padding: '24px', textAlign: 'center', color: '#6b7280' }}>
+                            <td colSpan="6" style={{ padding: '24px', textAlign: 'center', color: '#6b7280' }}>
                               No loan history for this member
                             </td>
                           </tr>
@@ -707,6 +721,9 @@ export default function MemberRoster({ state }) {
                               </td>
                               <td style={{ padding: '12px', textAlign: 'center', fontWeight: '600', color: entry.loanPaid ? '#f59e0b' : '#f87171' }}>
                                 ₹{entry.loanAmount.toLocaleString('en-IN')}
+                              </td>
+                              <td style={{ padding: '12px', textAlign: 'left', color: entry.loanPaidAt ? '#f59e0b' : '#6b7280', fontWeight: entry.loanPaidAt ? '600' : 'normal' }}>
+                                {entry.loanPaidAt || '-'}
                               </td>
                             </tr>
                           ))

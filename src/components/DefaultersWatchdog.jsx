@@ -93,7 +93,7 @@ export default function DefaultersWatchdog({ state }) {
           <div style={{ textAlign: 'center', padding: '30px 0' }}>
             <CheckCircle2 size={40} color="#10b981" style={{ marginBottom: '8px' }} />
             <h4 style={{ color: '#34d399' }}>100% Clean Record!</h4>
-            <p style={{ fontSize: '0.85rem', color: '#94a3b8' }}>All 10 members are completely up-to-date with their Sunday contributions.</p>
+            <p style={{ fontSize: '0.85rem', color: '#94a3b8' }}>All {state.members.length} members are completely up-to-date with their Sunday contributions.</p>
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>

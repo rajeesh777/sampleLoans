@@ -1,5 +1,5 @@
 import React from 'react';
-import { IndianRupee, ShieldAlert, ArrowUpRight, CheckCircle2, Clock, HandCoins, AlertCircle, Award } from 'lucide-react';
+import { IndianRupee, ShieldAlert, ArrowUpRight, CheckCircle2, Clock, HandCoins, AlertCircle, Award, AlertTriangle, MessageCircle } from 'lucide-react';
 import { getMemberStats } from '../utils/storage';
 
 export default function Dashboard({ state, groupStats, setActiveTab, onTogglePayment }) {
@@ -153,71 +153,257 @@ export default function Dashboard({ state, groupStats, setActiveTab, onTogglePay
         </div>
       </div>
 
-      {/* Quick Collection List for Current Sunday */}
-      <div className="card">
-        <div className="card-header">
-          <span className="card-title">
-            <CheckCircle2 size={18} color="#10b981" /> Today's Quick Payment Toggles (Week {currentWeekNum})
-          </span>
-          <button className="btn btn-secondary btn-sm" onClick={() => setActiveTab('ledger')}>
-            View Full Screen
-          </button>
+      {/* 3-Week Default Rule Enforcement */}
+      <div
+        className="card"
+        style={{
+          background: 'linear-gradient(135deg, #131b2e 0%, #1c2742 100%)',
+          border: '1px solid rgba(244, 63, 94, 0.4)'
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{ background: '#f43f5e', padding: '12px', borderRadius: 'var(--radius-md)', color: 'white' }}>
+            <ShieldAlert size={26} />
+          </div>
+          <div>
+            <h2 style={{ fontSize: '1.3rem', fontWeight: '800' }}>3-Week Default Rule Enforcement</h2>
+            <p style={{ fontSize: '0.85rem', color: '#94a3b8' }}>
+              Rule Policy: A member cannot fail for more than 3 consecutive weeks to pay their weekly contribution.
+            </p>
+          </div>
         </div>
 
-        <div className="members-collection-list">
-          {state.members.slice(0, 5).map((member) => {
-            const mStats = getMemberStats(state, member.id);
-            const isPaid = currentWeekData.collections[member.id]?.paid || false;
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '10px', marginTop: '16px' }}>
+          <div style={{ background: 'rgba(255,255,255,0.03)', padding: '10px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+            <span className="status-badge pending_1">1 Wk Pending</span>
+            <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '4px' }}>Standard Reminder</div>
+          </div>
+          <div style={{ background: 'rgba(255,255,255,0.03)', padding: '10px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+            <span className="status-badge overdue_2">2 Wks Overdue</span>
+            <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '4px' }}>Warning Notice</div>
+          </div>
+          <div style={{ background: 'rgba(255,255,255,0.03)', padding: '10px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+            <span className="status-badge critical_3">3 Wks Critical</span>
+            <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '4px' }}>Max Limit Reached</div>
+          </div>
+          <div style={{ background: 'rgba(255,255,255,0.03)', padding: '10px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+            <span className="status-badge blocked">⛔ BLOCKED (&gt;3 Wks)</span>
+            <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '4px' }}>Loans Locked</div>
+          </div>
+        </div>
+      </div>
 
+      {/* Loan Summary Card */}
+      <div
+        className="card"
+        style={{
+          background: 'linear-gradient(135deg, #1c3a1c 0%, #1e293b 100%)',
+          border: '1px solid rgba(16, 185, 129, 0.4)'
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+          <div style={{ background: '#10b981', padding: '12px', borderRadius: 'var(--radius-md)', color: 'white' }}>
+            <HandCoins size={26} />
+          </div>
+          <div>
+            <h2 style={{ fontSize: '1.3rem', fontWeight: '800' }}>Loan Portfolio Summary</h2>
+            <p style={{ fontSize: '0.85rem', color: '#94a3b8' }}>
+              Active loans and repayment tracking (10-week term)
+            </p>
+          </div>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '12px' }}>
+          <div style={{ background: 'rgba(16, 185, 129, 0.1)', padding: '12px', borderRadius: '8px', border: '1px solid rgba(16, 185, 129, 0.3)' }}>
+            <span style={{ fontSize: '0.75rem', color: '#94a3b8', textTransform: 'uppercase', fontWeight: '600' }}>Active Loans</span>
+            <div style={{ fontSize: '1.5rem', fontWeight: '800', color: '#10b981', marginTop: '4px' }}>
+              {state.loans.filter(l => l.status === 'ACTIVE').length}
+            </div>
+          </div>
+          <div style={{ background: 'rgba(59, 130, 246, 0.1)', padding: '12px', borderRadius: '8px', border: '1px solid rgba(59, 130, 246, 0.3)' }}>
+            <span style={{ fontSize: '0.75rem', color: '#94a3b8', textTransform: 'uppercase', fontWeight: '600' }}>Outstanding</span>
+            <div style={{ fontSize: '1.5rem', fontWeight: '800', color: '#3b82f6', marginTop: '4px' }}>
+              ₹{groupStats.totalActiveLoansBalance.toLocaleString('en-IN')}
+            </div>
+          </div>
+          <div style={{ background: 'rgba(251, 146, 60, 0.1)', padding: '12px', borderRadius: '8px', border: '1px solid rgba(251, 146, 60, 0.3)' }}>
+            <span style={{ fontSize: '0.75rem', color: '#94a3b8', textTransform: 'uppercase', fontWeight: '600' }}>Group Profits</span>
+            <div style={{ fontSize: '1.5rem', fontWeight: '800', color: '#fbbf24', marginTop: '4px' }}>
+              ₹{groupStats.totalGroupProfitsEarned.toLocaleString('en-IN')}
+            </div>
+          </div>
+          <div style={{ background: 'rgba(34, 197, 94, 0.1)', padding: '12px', borderRadius: '8px', border: '1px solid rgba(34, 197, 94, 0.3)' }}>
+            <span style={{ fontSize: '0.75rem', color: '#94a3b8', textTransform: 'uppercase', fontWeight: '600' }}>Closed Loans</span>
+            <div style={{ fontSize: '1.5rem', fontWeight: '800', color: '#22c55e', marginTop: '4px' }}>
+              {state.loans.filter(l => l.status === 'REPAID').length}
+            </div>
+          </div>
+        </div>
+
+        {(() => {
+          const urgentLoans = state.loans.filter(l => {
+            if (l.status !== 'ACTIVE') return false;
+            const weeksRemaining = l.startWeekNum + l.termWeeks - currentWeekNum;
+            return weeksRemaining <= 2 && weeksRemaining > 0;
+          });
+
+          if (urgentLoans.length > 0) {
             return (
-              <div
-                key={member.id}
-                className={`member-card ${isPaid ? 'paid' : ''} ${mStats.isBlocked ? 'blocked' : ''}`}
-              >
-                <div className="member-info">
-                  <div className="avatar" style={{ backgroundColor: member.avatarColor || '#10b981' }}>
-                    {member.name.substring(0, 2).toUpperCase()}
-                  </div>
-                  <div>
-                    <div className="member-name">
-                      {member.name}
-                      {mStats.status !== 'CLEAN' && (
-                        <span className={`status-badge ${mStats.status.toLowerCase()}`}>
-                          {mStats.unpaidPastWeeks} Wks Unpaid
-                        </span>
-                      )}
-                    </div>
-                    <div className="member-phone">{member.phone}</div>
-                  </div>
-                </div>
-
-                <div className="action-group">
-                  <div style={{ textAlign: 'right', marginRight: '8px' }}>
-                    <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Sunday Regular</div>
-                    <div style={{ fontWeight: '700', fontSize: '0.95rem' }}>₹1,000</div>
-                  </div>
-
-                  <button
-                    className={`btn btn-toggle-paid ${isPaid ? 'paid' : 'unpaid'}`}
-                    onClick={() => onTogglePayment(currentWeekNum, member.id)}
-                  >
-                    {isPaid ? <CheckCircle2 size={16} /> : null}
-                    {isPaid ? 'PAID' : 'MARK PAID'}
-                  </button>
+              <div style={{ marginTop: '12px', paddingTop: '12px', borderTop: '1px solid rgba(16, 185, 129, 0.3)' }}>
+                <div style={{ fontSize: '0.85rem', fontWeight: '600', color: '#fca5a5', marginBottom: '8px' }}>
+                  ⚠️ {urgentLoans.length} Loan(s) closing soon ({urgentLoans.map((l, idx) => idx === 0 ? `${l.startWeekNum + l.termWeeks - currentWeekNum} wk${l.startWeekNum + l.termWeeks - currentWeekNum !== 1 ? 's' : ''}` : '').filter(Boolean)})
                 </div>
               </div>
             );
-          })}
+          }
+          return null;
+        })()}
+      </div>
+
+      {/* Members with Outstanding Dues */}
+      <div className="card">
+        <div className="card-header">
+          <span className="card-title">
+            <AlertTriangle size={18} color="#f43f5e" /> Members With Outstanding Dues ({(() => {
+              const memberListWithStats = state.members.map((m) => {
+                const stats = getMemberStats(state, m.id);
+                return { member: m, stats };
+              });
+              return memberListWithStats.filter((item) => item.stats.unpaidPastWeeks > 0).length;
+            })()})
+          </span>
         </div>
 
-        {state.members.length > 5 && (
-          <div style={{ textAlign: 'center', marginTop: '16px' }}>
-            <button className="btn btn-secondary btn-sm" onClick={() => setActiveTab('ledger')}>
-              Show All 10 Members in Sunday Ledger →
-            </button>
-          </div>
-        )}
+        {(() => {
+          const memberListWithStats = state.members.map((m) => {
+            const stats = getMemberStats(state, m.id);
+            return { member: m, stats };
+          });
+          const pendingMembers = memberListWithStats.filter((item) => item.stats.unpaidPastWeeks > 0);
+          const cleanMembers = memberListWithStats.filter((item) => item.stats.unpaidPastWeeks === 0);
+
+          if (pendingMembers.length === 0) {
+            return (
+              <div style={{ textAlign: 'center', padding: '30px 0' }}>
+                <CheckCircle2 size={40} color="#10b981" style={{ marginBottom: '8px' }} />
+                <h4 style={{ color: '#34d399' }}>100% Clean Record!</h4>
+                <p style={{ fontSize: '0.85rem', color: '#94a3b8' }}>All {state.members.length} members are completely up-to-date with their Sunday contributions.</p>
+              </div>
+            );
+          }
+
+          return (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {pendingMembers.map((mItem) => {
+                const { member, stats } = mItem;
+                const regularDues = stats.unpaidPastWeeks * (state.weeklyAmount || 1000);
+                const totalOwed = regularDues + stats.totalLoanLiability;
+
+                const handleSendWhatsAppAlert = () => {
+                  const cleanPhone = member.phone ? member.phone.replace(/[^0-9]/g, '') : '';
+                  let msg = `🚨 *URGENT PAYMENT ALERT — ${state.groupName || 'Sunday Savings Group'}*\n\n`;
+                  msg += `Hi ${member.name},\n`;
+                  msg += `You have *${stats.unpaidPastWeeks} unpaid Sunday contribution(s)* (Weeks: ${stats.missedWeeksList.join(', ')}).\n`;
+                  if (stats.unpaidPastWeeks >= 3) {
+                    msg += `⚠️ *CRITICAL:* You have reached/exceeded the maximum 3-week unpaid limit. Your loan privileges are currently locked until dues are cleared!\n`;
+                  }
+                  msg += `\n👉 *Total Outstanding Dues: ₹${totalOwed.toLocaleString('en-IN')}*\n`;
+                  msg += `Please pay via UPI to *${state.groupUpiVpa || 'sundayfund@upi'}* immediately. Thank you!`;
+                  const encodedMsg = encodeURIComponent(msg);
+                  const waUrl = cleanPhone ? `https://wa.me/${cleanPhone}?text=${encodedMsg}` : `https://wa.me/?text=${encodedMsg}`;
+                  window.open(waUrl, '_blank');
+                };
+
+                return (
+                  <div
+                    key={member.id}
+                    className={`member-card ${stats.isBlocked ? 'blocked' : 'overdue'}`}
+                    style={{ padding: '16px' }}
+                  >
+                    <div className="member-info">
+                      <div className="avatar" style={{ backgroundColor: member.avatarColor || '#f43f5e' }}>
+                        {member.name.substring(0, 2).toUpperCase()}
+                      </div>
+                      <div>
+                        <div className="member-name">
+                          {member.name}
+                          {stats.status === 'PENDING_1' && <span className="status-badge pending_1">1 Wk Pending</span>}
+                          {stats.status === 'OVERDUE_2' && <span className="status-badge overdue_2">2 Wks Overdue</span>}
+                          {stats.status === 'CRITICAL_3' && <span className="status-badge critical_3">🚨 3 Wks Max Limit</span>}
+                          {stats.status === 'BLOCKED' && <span className="status-badge blocked">⛔ BLOCKED DEFAULTER</span>}
+                        </div>
+                        <div className="member-phone">{member.phone} • UPI: {member.upiId}</div>
+                      </div>
+                    </div>
+
+                    <div style={{ fontSize: '0.85rem' }}>
+                      <div style={{ color: '#f87171', fontWeight: '700' }}>
+                        {stats.unpaidPastWeeks} Unpaid Sunday(s): Weeks {stats.missedWeeksList.join(', ')}
+                      </div>
+                      <div style={{ color: '#94a3b8', fontSize: '0.8rem', marginTop: '2px' }}>
+                        Sunday Dues: ₹{regularDues.toLocaleString('en-IN')} {stats.totalLoanLiability > 0 ? `+ Loan Owed: ₹${stats.totalLoanLiability.toLocaleString('en-IN')}` : ''}
+                      </div>
+                    </div>
+
+                    <div className="action-group">
+                      <button
+                        className="btn btn-whatsapp"
+                        onClick={handleSendWhatsAppAlert}
+                      >
+                        <MessageCircle size={16} /> Send Urgent WA Alert
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })()}
       </div>
+
+      {/* Clean Members */}
+      <div className="card">
+        <div className="card-header">
+          <span className="card-title">
+            <CheckCircle2 size={18} color="#10b981" /> Members In Good Standing ({(() => {
+              const memberListWithStats = state.members.map((m) => {
+                const stats = getMemberStats(state, m.id);
+                return { member: m, stats };
+              });
+              return memberListWithStats.filter((item) => item.stats.unpaidPastWeeks === 0).length;
+            })()})
+          </span>
+        </div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+          {(() => {
+            const memberListWithStats = state.members.map((m) => {
+              const stats = getMemberStats(state, m.id);
+              return { member: m, stats };
+            });
+            const cleanMembers = memberListWithStats.filter((item) => item.stats.unpaidPastWeeks === 0);
+            return cleanMembers.map((mItem) => (
+              <div
+                key={mItem.member.id}
+                style={{
+                  background: 'rgba(16, 185, 129, 0.08)',
+                  border: '1px solid rgba(16, 185, 129, 0.25)',
+                  padding: '8px 14px',
+                  borderRadius: '9999px',
+                  fontSize: '0.825rem',
+                  fontWeight: '600',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  color: '#34d399'
+                }}
+              >
+                <CheckCircle2 size={14} /> {mItem.member.name}
+              </div>
+            ));
+          })()}
+        </div>
+      </div>
+
     </div>
   );
 }

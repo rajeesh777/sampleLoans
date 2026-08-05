@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Settings as SettingsIcon, Calendar, Hash, Lock, LockOpen, CheckCircle2, Users, Plus, Edit2, Trash2, X } from 'lucide-react';
 
-export default function Settings({ state, onUpdateSettings, onCeaseWeek, onToggleEditLock, onUpdateMembers }) {
+export default function Settings({ state, onUpdateSettings, onCeaseWeek, onToggleEditLock, onUpdateMembers, onImportState, onResetState }) {
   const [startDate, setStartDate] = useState(state.startDate || '2026-01-04');
   const [totalWeeks, setTotalWeeks] = useState(state.totalWeeks || 52);
   const [groupName, setGroupName] = useState(state.groupName || '');
@@ -283,7 +283,7 @@ export default function Settings({ state, onUpdateSettings, onCeaseWeek, onToggl
             <strong>Cycle Duration:</strong> {totalWeeks} weeks
           </div>
           <div>
-            <strong>Expected Total Pool:</strong> ₹{(totalWeeks * 10 * weeklyAmount).toLocaleString('en-IN')} (10 members × ₹{weeklyAmount.toLocaleString('en-IN')}/week × {totalWeeks} weeks)
+            <strong>Expected Total Pool:</strong> ₹{(totalWeeks * state.members.length * weeklyAmount).toLocaleString('en-IN')} ({state.members.length} members × ₹{weeklyAmount.toLocaleString('en-IN')}/week × {totalWeeks} weeks)
           </div>
         </div>
       </div>
@@ -715,6 +715,122 @@ export default function Settings({ state, onUpdateSettings, onCeaseWeek, onToggl
         </button>
       </div>
 
+      {/* Backup & Data Management Section */}
+      <div style={{
+        marginTop: '30px',
+        padding: '20px',
+        background: 'rgba(34, 197, 94, 0.1)',
+        border: '1px solid #22c55e',
+        borderRadius: '8px'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+          <span style={{ fontSize: '1.2rem' }}>💾</span>
+          <h3 style={{ fontSize: '1.1rem', fontWeight: '700', color: '#86efac', margin: 0 }}>Backup & Data Management</h3>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+          {/* Export Backup */}
+          <div style={{
+            background: 'var(--bg-dark)',
+            border: '1px solid #374151',
+            borderRadius: '8px',
+            padding: '16px'
+          }}>
+            <h4 style={{ fontSize: '0.95rem', fontWeight: '700', marginBottom: '8px', color: '#86efac' }}>
+              📥 Export Backup
+            </h4>
+            <p style={{ fontSize: '0.825rem', color: '#94a3b8', marginBottom: '12px' }}>
+              Download all your group data as a JSON file. Keep regular backups for safety.
+            </p>
+            <button
+              className="btn btn-primary"
+              onClick={() => {
+                const dataStr = JSON.stringify(state, null, 2);
+                const dataBlob = new Blob([dataStr], { type: 'application/json' });
+                const url = URL.createObjectURL(dataBlob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `isthooi-backup-${new Date().toISOString().slice(0, 10)}.json`;
+                link.click();
+              }}
+              style={{ width: '100%', background: '#22c55e' }}
+            >
+              Download JSON
+            </button>
+          </div>
+
+          {/* Import Backup */}
+          <div style={{
+            background: 'var(--bg-dark)',
+            border: '1px solid #374151',
+            borderRadius: '8px',
+            padding: '16px'
+          }}>
+            <h4 style={{ fontSize: '0.95rem', fontWeight: '700', marginBottom: '8px', color: '#86efac' }}>
+              📤 Import Backup
+            </h4>
+            <p style={{ fontSize: '0.825rem', color: '#94a3b8', marginBottom: '12px' }}>
+              Restore data from a previously exported JSON backup file.
+            </p>
+            <input
+              type="file"
+              accept=".json"
+              onChange={(e) => {
+                const file = e.target.files[0];
+                if (file) {
+                  const reader = new FileReader();
+                  reader.onload = (evt) => {
+                    try {
+                      const imported = JSON.parse(evt.target.result);
+                      if (window.confirm('Are you sure you want to import this backup? Current data will be replaced.')) {
+                        onImportState(imported);
+                        alert('Backup imported successfully!');
+                        e.target.value = ''; // Reset input
+                      }
+                    } catch (err) {
+                      alert('Error reading backup file: ' + err.message);
+                    }
+                  };
+                  reader.readAsText(file);
+                }
+              }}
+              style={{
+                width: '100%',
+                padding: '8px',
+                background: 'var(--bg-darker)',
+                border: '1px solid #374151',
+                borderRadius: '4px',
+                color: '#e5e7eb',
+                fontSize: '0.85rem',
+                cursor: 'pointer'
+              }}
+            />
+          </div>
+        </div>
+
+        {/* Reset to Demo Data */}
+        <div style={{ marginTop: '16px' }}>
+          <h4 style={{ fontSize: '0.95rem', fontWeight: '700', marginBottom: '8px', color: '#fca5a5' }}>
+            🔄 Reset to Demo Data
+          </h4>
+          <p style={{ fontSize: '0.825rem', color: '#94a3b8', marginBottom: '12px' }}>
+            Reload the application with fresh demo data. All current data will be lost.
+          </p>
+          <button
+            className="btn btn-rose"
+            onClick={() => {
+              if (window.confirm('This will reset all data to demo state. This action cannot be undone. Continue?')) {
+                onResetState();
+                alert('Application reset to demo state!');
+              }
+            }}
+            style={{ width: '100%' }}
+          >
+            Reset to Demo Data
+          </button>
+        </div>
+      </div>
+
       {/* Info Section */}
       <div style={{
         marginTop: '30px',
@@ -730,6 +846,7 @@ export default function Settings({ state, onUpdateSettings, onCeaseWeek, onToggl
           <li><strong>Finalize Weeks:</strong> Lock individual weeks to prevent accidental edits after settlement</li>
           <li><strong>Changing Settings:</strong> Regenerates calendar but preserves all payment data and ceased status</li>
           <li><strong>Multiple Cycles:</strong> You can run different cycle lengths (50 weeks, 52 weeks, 26 weeks, etc.)</li>
+          <li><strong>Backups:</strong> Export regularly to prevent data loss. Import to restore from backups.</li>
         </ul>
       </div>
     </div>

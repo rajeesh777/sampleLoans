@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**Isthooi** is a React-based savings group fund manager application. It tracks weekly contributions from 10 members, manages peer-to-peer loans with interest fees, and provides financial settlement tracking. The app targets small informal savings groups (common in India) and works entirely in-browser with optional cloud backup via Supabase.
+**Isthooi** is a React-based savings group fund manager application. It tracks weekly contributions from a flexible number of members, manages peer-to-peer loans with interest fees, and provides financial settlement tracking. The app targets small informal savings groups (common in India) and works entirely in-browser with optional cloud backup via Supabase.
 
 ## Tech Stack & Build Commands
 
@@ -29,7 +29,7 @@ The app uses a flat React state persisted to localStorage (key: `ISTHOOI_APP_STA
   groupNotes: string
   
   members: Array<{
-    id: string (m1..m10)
+    id: string (auto-generated UUID or mX pattern)
     name: string
     phone: string
     upiId: string
@@ -137,7 +137,7 @@ Navigate to http://localhost:5173. Changes auto-reload.
 Schema available in `supabase_schema.sql`. The app does NOT enforce schema validation—Supabase sync is best-effort and optional. Focus on localStorage correctness.
 
 ## Notes for Future Changes
-- Member count is hardcoded to 10 in initial state; changing requires updating seeded demo loans and calculations
-- Weekly amount defaults to 1000; logic doesn't validate/enforce this—allow flexible amounts in `collections[memberId].amount`
+- Members can be added/removed via Settings → Members Management; displays dynamically in Navbar, Dashboard, and AnnualSettlement
+- Weekly amount defaults to 1000 and is configurable via Settings; all calculations use `state.weeklyAmount` dynamically
 - Loan repayment logic clamps to prevent overpayment; a fully repaid loan transitions status from ACTIVE → REPAID
 - "Blocked" members (3+ missed weeks) are ineligible for new loans; this is enforced in UI, not in state logic

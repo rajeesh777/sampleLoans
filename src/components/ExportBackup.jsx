@@ -136,7 +136,7 @@ export default function ExportBackup({ state, onImportState, onResetState }) {
               Reset Application Data
             </h4>
             <p style={{ fontSize: '0.825rem', color: '#94a3b8', marginBottom: '16px' }}>
-              Reset all 52 weeks and reload fresh sample data for 10 members.
+              Reset all weeks and reload fresh sample data with demo members.
             </p>
             <button
               className="btn btn-rose"

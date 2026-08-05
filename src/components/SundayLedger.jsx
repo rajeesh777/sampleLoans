@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Calendar, CheckCircle2, MessageCircle, CheckSquare, Clock, Filter, Tag } from 'lucide-react';
-import { getMemberStats } from '../utils/storage';
+import { getMemberStats, formatDateDDMMYY } from '../utils/storage';
 
 export default function SundayLedger({
   state,
@@ -96,7 +96,7 @@ export default function SundayLedger({
       >
         <div>
           <h2 style={{ fontSize: '1.25rem', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '10px' }}>
-            Sunday Ledger — Week {selectedWeek}
+            Sunday Ledger — Week {selectedWeek} ({formatDateDDMMYY(weekData.date)})
             {weekData.ceased && (
               <span className="status-badge" style={{ background: '#6b7280', color: '#f3f4f6', fontSize: '0.75rem' }}>
                 🔒 CEASED
@@ -147,7 +147,7 @@ export default function SundayLedger({
         </div>
       </div>
 
-      {/* 10 Members Collection Cards */}
+      {/* Members Collection Cards */}
       <div className="members-collection-list">
         {filteredMembers.map((member) => {
           const rec = weekData.collections[member.id] || { paid: false, paymentMethod: 'UPI' };
