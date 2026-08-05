@@ -6,10 +6,8 @@ import SundayLedger from './components/SundayLedger';
 import SundayContributions from './components/SundayContributions';
 import LoanCollections from './components/LoanCollections';
 import LoanManager from './components/LoanManager';
-import DefaultersWatchdog from './components/DefaultersWatchdog';
 import AnnualSettlement from './components/AnnualSettlement';
 import MemberRoster from './components/MemberRoster';
-import ExportBackup from './components/ExportBackup';
 import Settings from './components/Settings';
 
 import {
@@ -60,7 +58,15 @@ export default function App() {
     setState((prevState) => {
       const nextWeeks = { ...prevState.weeks };
       const currentWeekData = nextWeeks[weekNum] || { collections: {} };
-      const memberColl = currentWeekData.collections[memberId] || { paid: false, amount: 1000 };
+      const memberColl = currentWeekData.collections[memberId] || {
+        paid: false,
+        amount: prevState.weeklyAmount || 1000,
+        paymentMethod: 'UPI',
+        paidAt: null,
+        loanInstallmentPaid: false,
+        loanInstallmentAmount: 0,
+        loanInstallmentPaidAt: null
+      };
 
       const newPaid = !memberColl.paid;
 
@@ -120,7 +126,8 @@ export default function App() {
           [memberId]: {
             ...memberColl,
             loanInstallmentPaid: newLoanPaid,
-            loanInstallmentAmount: newLoanPaid ? installmentAmt : 0
+            loanInstallmentAmount: newLoanPaid ? installmentAmt : 0,
+            loanInstallmentPaidAt: newLoanPaid ? new Date().toISOString().slice(0, 10) : null
           }
         }
       };
@@ -133,7 +140,7 @@ export default function App() {
     });
   };
 
-  // Bulk action: Mark all 10 members paid for selected Sunday
+  // Bulk action: Mark all members paid for selected Sunday
   const handleMarkAllPaid = (weekNum) => {
     setState((prevState) => {
       const nextWeeks = { ...prevState.weeks };
@@ -166,7 +173,15 @@ export default function App() {
     setState((prevState) => {
       const nextWeeks = { ...prevState.weeks };
       const weekData = nextWeeks[weekNum] || { collections: {} };
-      const memberColl = weekData.collections[memberId] || {};
+      const memberColl = weekData.collections[memberId] || {
+        paid: false,
+        amount: prevState.weeklyAmount || 1000,
+        paymentMethod: 'UPI',
+        paidAt: null,
+        loanInstallmentPaid: false,
+        loanInstallmentAmount: 0,
+        loanInstallmentPaidAt: null
+      };
 
       nextWeeks[weekNum] = {
         ...weekData,
@@ -196,7 +211,15 @@ export default function App() {
 
       while (remainingAmount > 0 && currentWeek <= 52) {
         const weekData = nextWeeks[currentWeek] || { collections: {} };
-        const memberColl = weekData.collections[memberId] || { paid: false, amount: weeklyAmount };
+        const memberColl = weekData.collections[memberId] || {
+          paid: false,
+          amount: weeklyAmount,
+          paymentMethod: 'UPI',
+          paidAt: null,
+          loanInstallmentPaid: false,
+          loanInstallmentAmount: 0,
+          loanInstallmentPaidAt: null
+        };
         const amountForThisWeek = Math.min(remainingAmount, weeklyAmount);
 
         nextWeeks[currentWeek] = {
@@ -246,7 +269,8 @@ export default function App() {
             [memberId]: {
               ...memberColl,
               loanInstallmentPaid: true,
-              loanInstallmentAmount: amountForThisWeek
+              loanInstallmentAmount: amountForThisWeek,
+              loanInstallmentPaidAt: new Date().toISOString().slice(0, 10)
             }
           }
         };
@@ -384,7 +408,8 @@ export default function App() {
               paymentMethod: 'UPI',
               paidAt: null,
               loanInstallmentPaid: false,
-              loanInstallmentAmount: 0
+              loanInstallmentAmount: 0,
+              loanInstallmentPaidAt: null
             };
           }
         });
@@ -439,6 +464,8 @@ export default function App() {
         groupStats={groupStats}
         loggedInMember={loggedInMember}
         onLogout={handleLogout}
+        memberCount={state.members.length}
+        weeklyAmount={state.weeklyAmount}
       />
 
       {/* Main Content Area */}
@@ -497,12 +524,6 @@ export default function App() {
           />
         )}
 
-        {activeTab === 'defaulters' && (
-          <DefaultersWatchdog
-            state={state}
-          />
-        )}
-
         {activeTab === 'settlement' && (
           <AnnualSettlement
             state={state}
@@ -514,20 +535,14 @@ export default function App() {
           <MemberRoster state={state} />
         )}
 
-        {activeTab === 'export' && (
-          <ExportBackup
-            state={state}
-            onImportState={handleImportState}
-            onResetState={handleResetState}
-          />
-        )}
-
         {activeTab === 'settings' && (
           <Settings
             state={state}
             onUpdateSettings={handleUpdateSettings}
             onCeaseWeek={handleCeaseWeek}
             onToggleEditLock={handleToggleEditLock}
+            onImportState={handleImportState}
+            onResetState={handleResetState}
           />
         )}
       </main>
