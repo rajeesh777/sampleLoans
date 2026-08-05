@@ -154,13 +154,16 @@ export default function LoanCollections({
 
               if (!activeLoan) return null;
 
-            const loanInstallment = activeLoan.weeklyInstallment;
             const loanNickname = activeLoan.nickname || 'Loan';
+            const remainingBalance = activeLoan.requestedAmount - activeLoan.repaidAmount;
+            const weeksRemaining = activeLoan.startWeekNum + activeLoan.termWeeks - selectedWeek;
+            const isUrgent = weeksRemaining <= 2;
 
             return (
               <div
                 key={member.id}
-                className={`member-card ${rec.loanInstallmentPaid ? 'paid' : ''}`}
+                className={`member-card ${remainingBalance === 0 ? 'paid' : ''}`}
+                style={isUrgent && remainingBalance > 0 ? { borderColor: '#ef4444', borderWidth: '2px' } : {}}
               >
                 <div className="member-info">
                   <div className="avatar" style={{ backgroundColor: member.avatarColor || '#f59e0b' }}>
@@ -175,20 +178,21 @@ export default function LoanCollections({
                     </div>
                     <div className="member-phone">{member.phone} • UPI: {member.upiId}</div>
                     <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '4px' }}>
-                      Remaining: ₹{(activeLoan.requestedAmount - activeLoan.repaidAmount).toLocaleString('en-IN')} •
+                      Outstanding: ₹{remainingBalance.toLocaleString('en-IN')} •
                       Repaid: ₹{activeLoan.repaidAmount.toLocaleString('en-IN')}/₹{activeLoan.requestedAmount.toLocaleString('en-IN')}
+                      {weeksRemaining > 0 && ` • ${weeksRemaining} wk${weeksRemaining !== 1 ? 's' : ''} left`}
                     </div>
                   </div>
                 </div>
 
-                {/* Loan Installment Due */}
+                {/* Loan Repayment Status */}
                 <div className="due-breakdown">
                   <div className="due-item">
                     <span className="due-item-label" style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
-                      <Tag size={10} color="#fbbf24" /> {loanNickname} Installment
+                      <Tag size={10} color="#fbbf24" /> Repayment Status
                     </span>
-                    <span className="due-item-val" style={{ color: rec.loanInstallmentPaid ? '#10b981' : '#f59e0b' }}>
-                      ₹{loanInstallment} ({rec.loanInstallmentPaid ? 'PAID' : 'DUE'})
+                    <span className="due-item-val" style={{ color: remainingBalance === 0 ? '#10b981' : isUrgent ? '#ef4444' : '#f59e0b' }}>
+                      {remainingBalance === 0 ? '✓ CLOSED' : isUrgent ? `🚨 ${weeksRemaining} WK${weeksRemaining !== 1 ? 'S' : ''} LEFT` : `₹${remainingBalance.toLocaleString('en-IN')} DUE`}
                     </span>
                   </div>
                 </div>
@@ -196,17 +200,16 @@ export default function LoanCollections({
                 {/* Payment Actions */}
                 <div className="action-group">
                   <button
-                    className={`btn btn-sm ${rec.loanInstallmentPaid ? 'btn-primary' : 'btn-gold'}`}
-                    style={{ flex: 1, background: rec.loanInstallmentPaid ? '#10b981' : '#f59e0b' }}
+                    className="btn btn-sm btn-gold"
+                    style={{ flex: 1, background: remainingBalance === 0 ? '#10b981' : isUrgent ? '#ef4444' : '#f59e0b' }}
                     onClick={() => {
-                      const remaining = activeLoan.requestedAmount - activeLoan.repaidAmount;
                       setLoanPaymentModal({ memberId: member.id, loanId: activeLoan.id, loan: activeLoan });
-                      setLoanPaymentAmount(loanInstallment);
+                      setLoanPaymentAmount(Math.min(5000, remainingBalance));
                     }}
-                    disabled={weekData.ceased || editLocked}
-                    title={editLocked ? '🔒 Editing is locked' : weekData.ceased ? 'Week is ceased' : 'Pay loan (flexible amount)'}
+                    disabled={weekData.ceased || editLocked || remainingBalance === 0}
+                    title={editLocked ? '🔒 Editing is locked' : weekData.ceased ? 'Week is ceased' : 'Make loan payment'}
                   >
-                    {rec.loanInstallmentPaid ? '✓ Paid This Week' : `Pay ${loanNickname}`}
+                    {remainingBalance === 0 ? '✓ Loan Closed' : `Pay Loan`}
                   </button>
                 </div>
               </div>
@@ -301,7 +304,8 @@ export default function LoanCollections({
         const member = state.members.find(m => m.id === loanPaymentModal.memberId);
         const loan = loanPaymentModal.loan;
         const remainingBalance = loan.requestedAmount - loan.repaidAmount;
-        const weeklyInstallment = loan.weeklyInstallment;
+        const weeksRemaining = loan.startWeekNum + loan.termWeeks - selectedWeek;
+        const isUrgent = weeksRemaining <= 2;
 
         return (
           <div className="modal-overlay" onClick={() => {
@@ -311,7 +315,7 @@ export default function LoanCollections({
             <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '500px' }}>
               <div className="modal-header">
                 <h3 style={{ fontSize: '1.25rem', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Clock size={20} color="#f59e0b" />
+                  <Clock size={20} color={isUrgent ? '#ef4444' : '#f59e0b'} />
                   Pay Loan - {member?.name} ({loan.nickname})
                 </h3>
                 <button className="modal-close" onClick={() => {
@@ -320,19 +324,26 @@ export default function LoanCollections({
                 }}>×</button>
               </div>
 
-              <div style={{ background: 'rgba(245, 158, 11, 0.1)', border: '1px solid #f59e0b', borderRadius: '8px', padding: '12px', marginBottom: '16px' }}>
+              <div style={{ background: isUrgent ? 'rgba(239, 68, 68, 0.1)' : 'rgba(245, 158, 11, 0.1)', border: isUrgent ? '1px solid #ef4444' : '1px solid #f59e0b', borderRadius: '8px', padding: '12px', marginBottom: '16px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-                  <span style={{ fontSize: '0.85rem', color: '#fcd34d' }}>Outstanding Balance</span>
-                  <span style={{ fontSize: '1rem', fontWeight: '700', color: '#fbbf24' }}>₹{remainingBalance.toLocaleString('en-IN')}</span>
+                  <span style={{ fontSize: '0.85rem', color: isUrgent ? '#fca5a5' : '#fcd34d' }}>Outstanding Balance</span>
+                  <span style={{ fontSize: '1rem', fontWeight: '700', color: isUrgent ? '#fca5a5' : '#fbbf24' }}>₹{remainingBalance.toLocaleString('en-IN')}</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-                  <span style={{ fontSize: '0.85rem', color: '#fcd34d' }}>Weekly Installment</span>
-                  <span style={{ fontSize: '0.9rem', fontWeight: '600', color: '#f59e0b' }}>₹{weeklyInstallment.toLocaleString('en-IN')}</span>
+                  <span style={{ fontSize: '0.85rem', color: isUrgent ? '#fca5a5' : '#fcd34d' }}>Term Remaining</span>
+                  <span style={{ fontSize: '0.9rem', fontWeight: '600', color: isUrgent ? '#ef4444' : '#f59e0b' }}>
+                    {weeksRemaining > 0 ? `${weeksRemaining} week${weeksRemaining !== 1 ? 's' : ''}` : 'EXPIRED'}
+                  </span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ fontSize: '0.85rem', color: '#fcd34d' }}>Already Repaid</span>
+                  <span style={{ fontSize: '0.85rem', color: isUrgent ? '#fca5a5' : '#fcd34d' }}>Already Repaid</span>
                   <span style={{ fontSize: '0.9rem', fontWeight: '600', color: '#10b981' }}>₹{loan.repaidAmount.toLocaleString('en-IN')}</span>
                 </div>
+                {isUrgent && weeksRemaining > 0 && (
+                  <div style={{ marginTop: '8px', fontSize: '0.85rem', color: '#fca5a5', paddingTop: '8px', borderTop: '1px solid rgba(239, 68, 68, 0.3)' }}>
+                    ⚠️ Must be repaid within {weeksRemaining} week{weeksRemaining !== 1 ? 's' : ''}
+                  </div>
+                )}
               </div>
 
               <div style={{ marginBottom: '16px' }}>
@@ -363,17 +374,17 @@ export default function LoanCollections({
                     </div>
                     {(remainingBalance - loanPaymentAmount) === 0 && (
                       <div style={{ marginTop: '8px', fontSize: '0.85rem', color: '#10b981', fontWeight: '600' }}>
-                        ✓ Loan will be fully repaid!
+                        ✓ Loan will be fully closed!
                       </div>
                     )}
-                    {loanPaymentAmount > weeklyInstallment && (
+                    {loanPaymentAmount > remainingBalance && (
                       <div style={{ marginTop: '8px', fontSize: '0.85rem', color: '#fbbf24' }}>
-                        💡 Paying ₹{loanPaymentAmount - weeklyInstallment} extra toward loan closure
+                        💡 Amount exceeds remaining balance
                       </div>
                     )}
                   </>
                 ) : (
-                  <div style={{ color: '#fcd34d', fontSize: '0.85rem' }}>Enter an amount to see loan balance after payment</div>
+                  <div style={{ color: '#fcd34d', fontSize: '0.85rem' }}>Enter an amount to see remaining balance after payment</div>
                 )}
               </div>
 
