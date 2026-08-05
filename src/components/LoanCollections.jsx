@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Calendar, CheckCircle2, CheckSquare, Clock, Filter, Tag, Lock } from 'lucide-react';
-import { getMemberStats } from '../utils/storage';
+import { getMemberStats, formatDateDDMMYY } from '../utils/storage';
 
 export default function LoanCollections({
   state,
@@ -12,8 +12,8 @@ export default function LoanCollections({
 }) {
   const [selectedWeek, setSelectedWeek] = useState(state.currentWeekNum || 1);
   const [filterMode, setFilterMode] = useState('ALL');
-  const [advancePaymentModal, setAdvancePaymentModal] = useState(null);
-  const [advanceAmount, setAdvanceAmount] = useState(5000);
+  const [loanPaymentModal, setLoanPaymentModal] = useState(null);
+  const [loanPaymentAmount, setLoanPaymentAmount] = useState(0);
   const [showCeaseConfirm, setShowCeaseConfirm] = useState(false);
   const [viewMode, setViewMode] = useState('active'); // 'active' or 'closed'
 
@@ -79,7 +79,7 @@ export default function LoanCollections({
       >
         <div>
           <h2 style={{ fontSize: '1.25rem', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '10px' }}>
-            {viewMode === 'active' ? 'Loan Collections' : 'Closed Loans'} — Week {selectedWeek}
+            {viewMode === 'active' ? 'Loan Collections' : 'Closed Loans'} — Week {selectedWeek} ({formatDateDDMMYY(weekData.date)})
             {weekData.ceased && (
               <span className="status-badge" style={{ background: '#6b7280', color: '#f3f4f6', fontSize: '0.75rem' }}>
                 🔒 CEASED
@@ -197,22 +197,16 @@ export default function LoanCollections({
                 <div className="action-group">
                   <button
                     className={`btn btn-sm ${rec.loanInstallmentPaid ? 'btn-primary' : 'btn-gold'}`}
-                    onClick={() => onToggleLoanInstallment(selectedWeek, member.id, activeLoan.id)}
+                    style={{ flex: 1, background: rec.loanInstallmentPaid ? '#10b981' : '#f59e0b' }}
+                    onClick={() => {
+                      const remaining = activeLoan.requestedAmount - activeLoan.repaidAmount;
+                      setLoanPaymentModal({ memberId: member.id, loanId: activeLoan.id, loan: activeLoan });
+                      setLoanPaymentAmount(loanInstallment);
+                    }}
                     disabled={weekData.ceased || editLocked}
-                    style={(weekData.ceased || editLocked) ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
-                    title={editLocked ? '🔒 Editing is locked' : weekData.ceased ? 'Week is ceased' : 'Mark payment'}
+                    title={editLocked ? '🔒 Editing is locked' : weekData.ceased ? 'Week is ceased' : 'Pay loan (flexible amount)'}
                   >
-                    {rec.loanInstallmentPaid ? 'Loan Inst. Paid' : `Pay ${loanNickname} ₹${loanInstallment}`}
-                  </button>
-
-                  <button
-                    className="btn btn-sm"
-                    style={{ background: '#8b5cf6', color: 'white', opacity: (weekData.ceased || editLocked) ? 0.5 : 1, cursor: (weekData.ceased || editLocked) ? 'not-allowed' : 'pointer' }}
-                    onClick={() => setAdvancePaymentModal({ memberId: member.id, loanId: activeLoan.id })}
-                    disabled={weekData.ceased || editLocked}
-                    title={editLocked ? '🔒 Editing is locked' : weekData.ceased ? "Week is ceased - no edits allowed" : "Pay multiple weeks of loan in advance"}
-                  >
-                    <Clock size={14} /> Loan Advance
+                    {rec.loanInstallmentPaid ? '✓ Paid This Week' : `Pay ${loanNickname}`}
                   </button>
                 </div>
               </div>
@@ -302,34 +296,55 @@ export default function LoanCollections({
         )}
       </div>
 
-      {/* Advance Loan Payment Modal */}
-      {advancePaymentModal && (() => {
-        const member = state.members.find(m => m.id === advancePaymentModal.memberId);
-        const activeLoan = getMemberStats(state, advancePaymentModal.memberId).activeLoans[0];
-        const weeklyAmount = activeLoan?.weeklyInstallment || 1000;
-        const weeksToFill = Math.floor(advanceAmount / weeklyAmount);
-        const remainderAmount = advanceAmount % weeklyAmount;
+      {/* Flexible Loan Payment Modal */}
+      {loanPaymentModal && (() => {
+        const member = state.members.find(m => m.id === loanPaymentModal.memberId);
+        const loan = loanPaymentModal.loan;
+        const remainingBalance = loan.requestedAmount - loan.repaidAmount;
+        const weeklyInstallment = loan.weeklyInstallment;
 
         return (
-          <div className="modal-overlay" onClick={() => setAdvancePaymentModal(null)}>
+          <div className="modal-overlay" onClick={() => {
+            setLoanPaymentModal(null);
+            setLoanPaymentAmount(0);
+          }}>
             <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '500px' }}>
               <div className="modal-header">
                 <h3 style={{ fontSize: '1.25rem', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <Clock size={20} color="#f59e0b" />
-                  Advance Loan Installment - {member?.name}
+                  Pay Loan - {member?.name} ({loan.nickname})
                 </h3>
-                <button className="modal-close" onClick={() => setAdvancePaymentModal(null)}>×</button>
+                <button className="modal-close" onClick={() => {
+                  setLoanPaymentModal(null);
+                  setLoanPaymentAmount(0);
+                }}>×</button>
+              </div>
+
+              <div style={{ background: 'rgba(245, 158, 11, 0.1)', border: '1px solid #f59e0b', borderRadius: '8px', padding: '12px', marginBottom: '16px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                  <span style={{ fontSize: '0.85rem', color: '#fcd34d' }}>Outstanding Balance</span>
+                  <span style={{ fontSize: '1rem', fontWeight: '700', color: '#fbbf24' }}>₹{remainingBalance.toLocaleString('en-IN')}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                  <span style={{ fontSize: '0.85rem', color: '#fcd34d' }}>Weekly Installment</span>
+                  <span style={{ fontSize: '0.9rem', fontWeight: '600', color: '#f59e0b' }}>₹{weeklyInstallment.toLocaleString('en-IN')}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ fontSize: '0.85rem', color: '#fcd34d' }}>Already Repaid</span>
+                  <span style={{ fontSize: '0.9rem', fontWeight: '600', color: '#10b981' }}>₹{loan.repaidAmount.toLocaleString('en-IN')}</span>
+                </div>
               </div>
 
               <div style={{ marginBottom: '16px' }}>
-                <label className="form-label">Amount to Pay in Advance (₹)</label>
+                <label className="form-label">Amount to Pay (₹)</label>
                 <input
                   type="number"
                   min="0"
-                  value={advanceAmount}
+                  max={remainingBalance}
+                  value={loanPaymentAmount}
                   onChange={(e) => {
-                    const val = parseInt(e.target.value) || 0;
-                    setAdvanceAmount(val);
+                    const val = Math.min(parseInt(e.target.value) || 0, remainingBalance);
+                    setLoanPaymentAmount(val);
                   }}
                   className="form-input"
                   placeholder="Enter amount"
@@ -337,31 +352,29 @@ export default function LoanCollections({
               </div>
 
               <div style={{ background: 'rgba(245, 158, 11, 0.1)', border: '1px solid #f59e0b', borderRadius: '8px', padding: '12px', marginBottom: '16px' }}>
-                <div style={{ fontSize: '0.9rem', color: '#fcd34d', marginBottom: '8px' }}>
-                  <strong>Calculation:</strong> ₹{advanceAmount} ÷ ₹{weeklyAmount}/week = <strong>{weeksToFill} weeks</strong>
-                  {remainderAmount > 0 && ` + ₹${remainderAmount} remainder`}
-                </div>
-                <div style={{ fontSize: '0.85rem', color: '#fbbf24' }}>
-                  Starting from Week {selectedWeek}, the amount will be applied across the following weeks:
-                </div>
-              </div>
-
-              <div style={{ marginBottom: '16px' }}>
-                <label className="form-label">Coverage (Weeks {selectedWeek} onwards):</label>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  {Array.from({ length: Math.min(weeksToFill + (remainderAmount > 0 ? 1 : 0), 10) }).map((_, idx) => {
-                    const weekNum = selectedWeek + idx;
-                    if (weekNum > 52) return null;
-                    const amount = idx < weeksToFill ? weeklyAmount : remainderAmount;
-                    const weekInfo = state.weeks[weekNum];
-                    return (
-                      <div key={weekNum} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px', background: 'var(--bg-dark)', borderRadius: '6px', fontSize: '0.9rem' }}>
-                        <span>Week {weekNum} ({weekInfo?.displayDate || 'N/A'})</span>
-                        <span style={{ color: '#fbbf24', fontWeight: '600' }}>₹{amount}</span>
+                {loanPaymentAmount > 0 ? (
+                  <>
+                    <div style={{ fontSize: '0.9rem', color: '#fcd34d', marginBottom: '8px' }}>
+                      <strong>After Payment:</strong>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: '#fcd34d', paddingBottom: '8px', borderBottom: '1px solid rgba(245, 158, 11, 0.3)' }}>
+                      <span>Remaining Balance</span>
+                      <span style={{ fontWeight: '600', color: '#fbbf24' }}>₹{(remainingBalance - loanPaymentAmount).toLocaleString('en-IN')}</span>
+                    </div>
+                    {(remainingBalance - loanPaymentAmount) === 0 && (
+                      <div style={{ marginTop: '8px', fontSize: '0.85rem', color: '#10b981', fontWeight: '600' }}>
+                        ✓ Loan will be fully repaid!
                       </div>
-                    );
-                  })}
-                </div>
+                    )}
+                    {loanPaymentAmount > weeklyInstallment && (
+                      <div style={{ marginTop: '8px', fontSize: '0.85rem', color: '#fbbf24' }}>
+                        💡 Paying ₹{loanPaymentAmount - weeklyInstallment} extra toward loan closure
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div style={{ color: '#fcd34d', fontSize: '0.85rem' }}>Enter an amount to see loan balance after payment</div>
+                )}
               </div>
 
               <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
@@ -369,8 +382,8 @@ export default function LoanCollections({
                   type="button"
                   className="btn btn-secondary"
                   onClick={() => {
-                    setAdvancePaymentModal(null);
-                    setAdvanceAmount(5000);
+                    setLoanPaymentModal(null);
+                    setLoanPaymentAmount(0);
                   }}
                 >
                   Cancel
@@ -379,13 +392,13 @@ export default function LoanCollections({
                   type="button"
                   className="btn btn-gold"
                   onClick={() => {
-                    onAdvanceLoanInstallment(selectedWeek, advancePaymentModal.memberId, advancePaymentModal.loanId, advanceAmount);
-                    setAdvancePaymentModal(null);
-                    setAdvanceAmount(5000);
+                    onAdvanceLoanInstallment(selectedWeek, loanPaymentModal.memberId, loanPaymentModal.loanId, loanPaymentAmount);
+                    setLoanPaymentModal(null);
+                    setLoanPaymentAmount(0);
                   }}
-                  disabled={advanceAmount <= 0}
+                  disabled={loanPaymentAmount <= 0}
                 >
-                  Confirm & Record ₹{advanceAmount}
+                  Pay ₹{loanPaymentAmount.toLocaleString('en-IN')}
                 </button>
               </div>
             </div>
