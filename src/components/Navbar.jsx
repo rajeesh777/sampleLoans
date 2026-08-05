@@ -1,7 +1,7 @@
 import React from 'react';
-import { LayoutDashboard, Calendar, HandCoins, Award, Users, AlertTriangle, Download, Settings as SettingsIcon } from 'lucide-react';
+import { LayoutDashboard, Calendar, HandCoins, Award, Users, AlertTriangle, Download, Settings as SettingsIcon, LogOut } from 'lucide-react';
 
-export default function Navbar({ activeTab, setActiveTab, groupStats }) {
+export default function Navbar({ activeTab, setActiveTab, groupStats, loggedInMember, onLogout }) {
   return (
     <>
       {/* Top Header */}
@@ -17,6 +17,10 @@ export default function Navbar({ activeTab, setActiveTab, groupStats }) {
         </div>
 
         <div className="header-badges">
+          <div className="pill-badge indigo">
+            <span>👤 {loggedInMember?.name}</span>
+          </div>
+
           <div className="pill-badge emerald">
             <span>Week {groupStats.currentWeek} of 52</span>
           </div>
@@ -31,6 +35,36 @@ export default function Navbar({ activeTab, setActiveTab, groupStats }) {
               <span>{groupStats.totalOverdueMembersCount} Overdue</span>
             </div>
           )}
+
+          <button
+            onClick={onLogout}
+            style={{
+              background: 'rgba(239, 68, 68, 0.2)',
+              border: '1px solid #ef4444',
+              color: '#fca5a5',
+              padding: '6px 12px',
+              borderRadius: '6px',
+              fontSize: '0.8rem',
+              fontWeight: '600',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              transition: 'all 0.2s'
+            }}
+            onMouseOver={(e) => {
+              e.currentTarget.style.background = 'rgba(239, 68, 68, 0.3)';
+              e.currentTarget.style.borderColor = '#f87171';
+            }}
+            onMouseOut={(e) => {
+              e.currentTarget.style.background = 'rgba(239, 68, 68, 0.2)';
+              e.currentTarget.style.borderColor = '#ef4444';
+            }}
+            title="Logout"
+          >
+            <LogOut size={14} />
+            Logout
+          </button>
         </div>
       </header>
 

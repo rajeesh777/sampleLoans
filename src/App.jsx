@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Navbar from './components/Navbar';
+import Login from './components/Login';
 import Dashboard from './components/Dashboard';
 import SundayLedger from './components/SundayLedger';
 import SundayContributions from './components/SundayContributions';
@@ -22,11 +23,35 @@ import {
 export default function App() {
   const [state, setState] = useState(() => loadState());
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [loggedInMember, setLoggedInMember] = useState(() => {
+    const saved = localStorage.getItem('ISTHOOI_LOGGED_IN_MEMBER');
+    return saved ? JSON.parse(saved) : null;
+  });
 
   // Sync state changes to localStorage
   useEffect(() => {
     saveState(state);
   }, [state]);
+
+  // Save logged-in member to localStorage
+  useEffect(() => {
+    if (loggedInMember) {
+      localStorage.setItem('ISTHOOI_LOGGED_IN_MEMBER', JSON.stringify(loggedInMember));
+    } else {
+      localStorage.removeItem('ISTHOOI_LOGGED_IN_MEMBER');
+    }
+  }, [loggedInMember]);
+
+  // Login handler
+  const handleLogin = (member) => {
+    setLoggedInMember(member);
+    setActiveTab('dashboard');
+  };
+
+  // Logout handler
+  const handleLogout = () => {
+    setLoggedInMember(null);
+  };
 
   const groupStats = getGroupStats(state);
 
@@ -301,13 +326,6 @@ export default function App() {
     });
   };
 
-  // Update member details
-  const handleUpdateMember = (updatedMember) => {
-    setState((prevState) => ({
-      ...prevState,
-      members: prevState.members.map((m) => (m.id === updatedMember.id ? updatedMember : m))
-    }));
-  };
 
   // Import JSON backup
   const handleImportState = (importedData) => {
@@ -340,6 +358,7 @@ export default function App() {
     setState((prevState) => {
       const sundays = generate52Sundays(settings.startDate);
       let newWeeks = {};
+      const membersToUse = settings.members || prevState.members;
 
       // Generate weeks based on totalWeeks setting
       for (let i = 0; i < settings.totalWeeks; i++) {
@@ -356,7 +375,8 @@ export default function App() {
         const existingWeek = prevState.weeks[weekNum];
         const collections = existingWeek?.collections || {};
 
-        prevState.members.forEach((m) => {
+        // Add entries for all members
+        membersToUse.forEach((m) => {
           if (!collections[m.id]) {
             collections[m.id] = {
               paid: false,
@@ -391,6 +411,7 @@ export default function App() {
         groupUpiVpa: settings.groupUpiVpa,
         weeklyAmount: settings.weeklyAmount,
         groupNotes: settings.groupNotes,
+        members: membersToUse,
         weeks: newWeeks
       };
     });
@@ -404,6 +425,11 @@ export default function App() {
     }));
   };
 
+  // Show login screen if not logged in
+  if (!loggedInMember) {
+    return <Login members={state.members} onLogin={handleLogin} />;
+  }
+
   return (
     <div className="app-container">
       {/* Navigation Header */}
@@ -411,6 +437,8 @@ export default function App() {
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         groupStats={groupStats}
+        loggedInMember={loggedInMember}
+        onLogout={handleLogout}
       />
 
       {/* Main Content Area */}
@@ -483,10 +511,7 @@ export default function App() {
         )}
 
         {activeTab === 'members' && (
-          <MemberRoster
-            state={state}
-            onUpdateMember={handleUpdateMember}
-          />
+          <MemberRoster state={state} />
         )}
 
         {activeTab === 'export' && (

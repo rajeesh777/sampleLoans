@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Settings as SettingsIcon, Calendar, Hash, Lock, LockOpen, CheckCircle2 } from 'lucide-react';
+import { Settings as SettingsIcon, Calendar, Hash, Lock, LockOpen, CheckCircle2, Users, Plus, Edit2, Trash2, X } from 'lucide-react';
 
-export default function Settings({ state, onUpdateSettings, onCeaseWeek, onToggleEditLock }) {
+export default function Settings({ state, onUpdateSettings, onCeaseWeek, onToggleEditLock, onUpdateMembers }) {
   const [startDate, setStartDate] = useState(state.startDate || '2026-01-04');
   const [totalWeeks, setTotalWeeks] = useState(state.totalWeeks || 52);
   const [groupName, setGroupName] = useState(state.groupName || '');
@@ -12,6 +12,14 @@ export default function Settings({ state, onUpdateSettings, onCeaseWeek, onToggl
   const [editLocked, setEditLocked] = useState(state.editLocked || false);
   const [selectedWeeksToCease, setSelectedWeeksToCease] = useState([]);
   const [ceaseConfirm, setCeaseConfirm] = useState(false);
+  const [showMemberModal, setShowMemberModal] = useState(false);
+  const [editingMemberId, setEditingMemberId] = useState(null);
+  const [memberForm, setMemberForm] = useState({
+    name: '',
+    phone: '',
+    upiId: '',
+    avatarColor: '#10b981'
+  });
 
   const handleSaveSettings = () => {
     if (!startDate) {
@@ -74,6 +82,91 @@ export default function Settings({ state, onUpdateSettings, onCeaseWeek, onToggl
   const handleToggleLock = () => {
     onToggleEditLock();
     setEditLocked(!editLocked);
+  };
+
+  // Member management handlers
+  const openAddMemberModal = () => {
+    setEditingMemberId(null);
+    setMemberForm({
+      name: '',
+      phone: '',
+      upiId: '',
+      avatarColor: '#10b981'
+    });
+    setShowMemberModal(true);
+  };
+
+  const openEditMemberModal = (member) => {
+    setEditingMemberId(member.id);
+    setMemberForm({
+      name: member.name,
+      phone: member.phone,
+      upiId: member.upiId,
+      avatarColor: member.avatarColor
+    });
+    setShowMemberModal(true);
+  };
+
+  const handleSaveMember = () => {
+    if (!memberForm.name.trim()) {
+      alert('Please enter member name');
+      return;
+    }
+    if (!memberForm.phone.trim()) {
+      alert('Please enter phone number');
+      return;
+    }
+    if (!memberForm.upiId.trim()) {
+      alert('Please enter UPI ID');
+      return;
+    }
+
+    const updatedMembers = editingMemberId
+      ? state.members.map(m =>
+          m.id === editingMemberId
+            ? { ...m, ...memberForm }
+            : m
+        )
+      : [
+          ...state.members,
+          {
+            id: `m${Date.now()}`,
+            ...memberForm
+          }
+        ];
+
+    onUpdateSettings({
+      startDate,
+      totalWeeks: parseInt(totalWeeks),
+      groupName,
+      groupUpiVpa,
+      weeklyAmount: parseInt(weeklyAmount),
+      groupNotes,
+      members: updatedMembers
+    });
+
+    setSaveMessage(editingMemberId ? '✓ Member updated!' : '✓ Member added!');
+    setShowMemberModal(false);
+    setTimeout(() => setSaveMessage(''), 3000);
+  };
+
+  const handleDeleteMember = (memberId) => {
+    if (window.confirm('Are you sure you want to delete this member? Their payment history will be preserved.')) {
+      const updatedMembers = state.members.filter(m => m.id !== memberId);
+
+      onUpdateSettings({
+        startDate,
+        totalWeeks: parseInt(totalWeeks),
+        groupName,
+        groupUpiVpa,
+        weeklyAmount: parseInt(weeklyAmount),
+        groupNotes,
+        members: updatedMembers
+      });
+
+      setSaveMessage('✓ Member deleted!');
+      setTimeout(() => setSaveMessage(''), 3000);
+    }
   };
 
   // Count ceased weeks
@@ -373,6 +466,236 @@ export default function Settings({ state, onUpdateSettings, onCeaseWeek, onToggl
           </button>
         )}
       </div>
+
+      {/* Members Management */}
+      <div className="card" style={{ marginBottom: '20px' }}>
+        <div className="card-header" style={{ marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span className="card-title">
+            <Users size={18} color="#7c3aed" /> Members Management
+          </span>
+          <button
+            onClick={openAddMemberModal}
+            style={{
+              background: '#7c3aed',
+              color: 'white',
+              border: 'none',
+              borderRadius: '6px',
+              padding: '8px 12px',
+              fontSize: '0.85rem',
+              fontWeight: '600',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px'
+            }}
+          >
+            <Plus size={16} /> Add Member
+          </button>
+        </div>
+
+        <div style={{ marginBottom: '16px' }}>
+          <div style={{ fontSize: '0.9rem', color: '#94a3b8', marginBottom: '12px' }}>
+            <strong>Total Members ({state.members.length}):</strong> Login username = First Name, Password = abcd
+          </div>
+
+          {state.members.length === 0 ? (
+            <div style={{
+              textAlign: 'center',
+              padding: '30px',
+              color: '#94a3b8',
+              fontSize: '0.9rem'
+            }}>
+              No members configured. Click "Add Member" to get started.
+            </div>
+          ) : (
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+              gap: '12px'
+            }}>
+              {state.members.map((member) => {
+                const firstName = member.name.split(' ')[0];
+                return (
+                  <div
+                    key={member.id}
+                    style={{
+                      background: 'var(--bg-dark)',
+                      border: '1px solid #374151',
+                      borderRadius: '8px',
+                      padding: '16px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '12px'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <div
+                        style={{
+                          width: '40px',
+                          height: '40px',
+                          borderRadius: '50%',
+                          background: member.avatarColor,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: 'white',
+                          fontWeight: '600',
+                          fontSize: '0.9rem'
+                        }}
+                      >
+                        {firstName.substring(0, 2).toUpperCase()}
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontWeight: '600', color: '#ffffff' }}>
+                          {member.name}
+                        </div>
+                        <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+                          Username: <code style={{ background: 'rgba(255,255,255,0.1)', padding: '2px 4px' }}>{firstName}</code>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div style={{ fontSize: '0.85rem', color: '#94a3b8' }}>
+                      <div>📱 {member.phone}</div>
+                      <div>💳 {member.upiId}</div>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button
+                        onClick={() => openEditMemberModal(member)}
+                        style={{
+                          flex: 1,
+                          background: '#3b82f6',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '6px',
+                          padding: '8px',
+                          fontSize: '0.8rem',
+                          fontWeight: '600',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '6px'
+                        }}
+                      >
+                        <Edit2 size={14} /> Edit
+                      </button>
+                      <button
+                        onClick={() => handleDeleteMember(member.id)}
+                        style={{
+                          flex: 1,
+                          background: '#ef4444',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '6px',
+                          padding: '8px',
+                          fontSize: '0.8rem',
+                          fontWeight: '600',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '6px'
+                        }}
+                      >
+                        <Trash2 size={14} /> Delete
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Member Modal */}
+      {showMemberModal && (
+        <div className="modal-overlay" onClick={() => setShowMemberModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '450px' }}>
+            <div className="modal-header">
+              <h3 style={{ fontSize: '1.25rem', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                {editingMemberId ? '✏️ Edit Member' : '➕ Add New Member'}
+              </h3>
+              <button className="modal-close" onClick={() => setShowMemberModal(false)}>×</button>
+            </div>
+
+            <div style={{ marginBottom: '16px' }}>
+              <label className="form-label">Full Name</label>
+              <input
+                type="text"
+                className="form-input"
+                value={memberForm.name}
+                onChange={(e) => setMemberForm({ ...memberForm, name: e.target.value })}
+                placeholder="e.g., Rajesh Kumar"
+              />
+              <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '4px' }}>
+                First name will be used as login username
+              </div>
+            </div>
+
+            <div style={{ marginBottom: '16px' }}>
+              <label className="form-label">Phone Number</label>
+              <input
+                type="text"
+                className="form-input"
+                value={memberForm.phone}
+                onChange={(e) => setMemberForm({ ...memberForm, phone: e.target.value })}
+                placeholder="e.g., +91 9876543210"
+              />
+            </div>
+
+            <div style={{ marginBottom: '16px' }}>
+              <label className="form-label">UPI ID</label>
+              <input
+                type="text"
+                className="form-input"
+                value={memberForm.upiId}
+                onChange={(e) => setMemberForm({ ...memberForm, upiId: e.target.value })}
+                placeholder="e.g., rajesh@upi"
+              />
+            </div>
+
+            <div style={{ marginBottom: '16px' }}>
+              <label className="form-label">Avatar Color</label>
+              <div style={{ display: 'flex', gap: '10px', marginTop: '8px' }}>
+                {['#10b981', '#6366f1', '#ec4899', '#f59e0b', '#3b82f6', '#8b5cf6', '#14b8a6', '#f43f5e', '#84cc16', '#06b6d4'].map((color) => (
+                  <button
+                    key={color}
+                    onClick={() => setMemberForm({ ...memberForm, avatarColor: color })}
+                    style={{
+                      width: '32px',
+                      height: '32px',
+                      borderRadius: '50%',
+                      background: color,
+                      border: memberForm.avatarColor === color ? '3px solid white' : '1px solid rgba(255,255,255,0.2)',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s'
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+              <button
+                className="btn btn-secondary"
+                onClick={() => setShowMemberModal(false)}
+              >
+                Cancel
+              </button>
+              <button
+                className="btn btn-primary"
+                onClick={handleSaveMember}
+                style={{ background: '#7c3aed' }}
+              >
+                {editingMemberId ? '✓ Update Member' : '➕ Add Member'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Action Buttons */}
       <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginBottom: '20px' }}>

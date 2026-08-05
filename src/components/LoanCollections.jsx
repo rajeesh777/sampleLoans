@@ -15,6 +15,7 @@ export default function LoanCollections({
   const [advancePaymentModal, setAdvancePaymentModal] = useState(null);
   const [advanceAmount, setAdvanceAmount] = useState(5000);
   const [showCeaseConfirm, setShowCeaseConfirm] = useState(false);
+  const [viewMode, setViewMode] = useState('active'); // 'active' or 'closed'
 
   const weekData = state.weeks[selectedWeek] || { collections: {} };
 
@@ -78,7 +79,7 @@ export default function LoanCollections({
       >
         <div>
           <h2 style={{ fontSize: '1.25rem', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '10px' }}>
-            Loan Collections — Week {selectedWeek}
+            {viewMode === 'active' ? 'Loan Collections' : 'Closed Loans'} — Week {selectedWeek}
             {weekData.ceased && (
               <span className="status-badge" style={{ background: '#6b7280', color: '#f3f4f6', fontSize: '0.75rem' }}>
                 🔒 CEASED
@@ -86,27 +87,47 @@ export default function LoanCollections({
             )}
           </h2>
           <p style={{ fontSize: '0.8rem', color: '#fcd34d' }}>
-            Date: {weekData.displayDate} • Track loan installment payments
+            {viewMode === 'active' ? 'Track loan installment payments' : 'View completed and repaid loans'}
             {weekData.ceased && <span style={{ marginLeft: '12px', color: '#9ca3af' }}>Ceased on {weekData.ceaseDate}</span>}
           </p>
         </div>
 
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
           <button
-            className="btn btn-secondary btn-sm"
-            onClick={() => setFilterMode(filterMode === 'ALL' ? 'UNPAID' : 'ALL')}
-            disabled={weekData.ceased || editLocked}
+            onClick={() => setViewMode(viewMode === 'active' ? 'closed' : 'active')}
+            style={{
+              background: viewMode === 'active' ? '#f59e0b' : '#6b7280',
+              color: 'white',
+              border: 'none',
+              borderRadius: '6px',
+              padding: '8px 12px',
+              fontSize: '0.85rem',
+              fontWeight: '600',
+              cursor: 'pointer'
+            }}
           >
-            <Filter size={14} /> Filter: {filterMode}
+            {viewMode === 'active' ? '📋 View Closed Loans' : '⏳ View Active Loans'}
           </button>
 
-          <button
-            className="btn btn-primary btn-sm"
-            onClick={() => onMarkAllPaid(selectedWeek)}
-            disabled={weekData.ceased || editLocked}
-          >
-            <CheckSquare size={16} /> Mark All Paid
-          </button>
+          {viewMode === 'active' && (
+            <>
+              <button
+                className="btn btn-secondary btn-sm"
+                onClick={() => setFilterMode(filterMode === 'ALL' ? 'UNPAID' : 'ALL')}
+                disabled={weekData.ceased || editLocked}
+              >
+                <Filter size={14} /> Filter: {filterMode}
+              </button>
+
+              <button
+                className="btn btn-primary btn-sm"
+                onClick={() => onMarkAllPaid(selectedWeek)}
+                disabled={weekData.ceased || editLocked}
+              >
+                <CheckSquare size={16} /> Mark All Paid
+              </button>
+            </>
+          )}
 
           {editLocked && (
             <span style={{ fontSize: '0.85rem', color: '#ef4444', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -116,20 +137,22 @@ export default function LoanCollections({
         </div>
       </div>
 
-      {/* Members with Active Loans */}
+      {/* Members with Active/Closed Loans */}
       <div className="members-collection-list">
-        {filteredMembers.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '40px', color: '#94a3b8' }}>
-            <p style={{ fontSize: '1rem', marginBottom: '8px' }}>No active loans this week</p>
-            <p style={{ fontSize: '0.85rem' }}>Members with active loans will appear here</p>
-          </div>
-        ) : (
-          filteredMembers.map((member) => {
-            const mStats = getMemberStats(state, member.id);
-            const activeLoan = mStats.activeLoans[0];
-            const rec = weekData.collections[member.id] || {};
+        {viewMode === 'active' ? (
+          // ACTIVE LOANS VIEW
+          filteredMembers.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '40px', color: '#94a3b8' }}>
+              <p style={{ fontSize: '1rem', marginBottom: '8px' }}>No active loans this week</p>
+              <p style={{ fontSize: '0.85rem' }}>Members with active loans will appear here</p>
+            </div>
+          ) : (
+            filteredMembers.map((member) => {
+              const mStats = getMemberStats(state, member.id);
+              const activeLoan = mStats.activeLoans[0];
+              const rec = weekData.collections[member.id] || {};
 
-            if (!activeLoan) return null;
+              if (!activeLoan) return null;
 
             const loanInstallment = activeLoan.weeklyInstallment;
             const loanNickname = activeLoan.nickname || 'Loan';
@@ -195,6 +218,87 @@ export default function LoanCollections({
               </div>
             );
           })
+          )
+        ) : (
+          // CLOSED LOANS VIEW
+          state.loans.filter(l => l.status === 'REPAID').length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '40px', color: '#94a3b8' }}>
+              <p style={{ fontSize: '1rem', marginBottom: '8px' }}>✓ No closed loans yet</p>
+              <p style={{ fontSize: '0.85rem' }}>All loans will appear here once they are fully repaid</p>
+            </div>
+          ) : (
+            state.loans.filter(l => l.status === 'REPAID').map((loan) => {
+              const borrower = state.members.find(m => m.id === loan.memberId) || { name: 'Unknown' };
+              const totalPaid = loan.repaidAmount;
+              const progressPct = 100;
+
+              return (
+                <div
+                  key={loan.id}
+                  style={{
+                    background: 'rgba(16, 185, 129, 0.1)',
+                    border: '2px solid #10b981',
+                    borderRadius: 'var(--radius-md)',
+                    padding: '16px'
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '10px' }}>
+                    <div>
+                      <div style={{ fontWeight: '700', fontSize: '1.05rem', color: '#ffffff', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        {borrower.name}
+                        <span className="status-badge" style={{ background: '#10b981', color: '#ffffff', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                          ✓ {loan.nickname || 'Loan'}
+                        </span>
+                      </div>
+                      <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '2px' }}>
+                        Requested: ₹{loan.requestedAmount.toLocaleString('en-IN')} • Disbursed (90%): ₹{loan.disbursedAmount.toLocaleString('en-IN')}
+                      </div>
+                    </div>
+
+                    <div style={{ textAlign: 'right' }}>
+                      <span className="status-badge" style={{ fontSize: '0.8rem', background: '#10b981' }}>
+                        ✓ FULLY REPAID
+                      </span>
+                      <div style={{ fontSize: '0.85rem', fontWeight: '700', color: '#10b981', marginTop: '4px' }}>
+                        Repaid: ₹{totalPaid.toLocaleString('en-IN')}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Repayment Progress Bar */}
+                  <div style={{ marginTop: '12px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', color: '#94a3b8' }}>
+                      <span>Repayment Completed</span>
+                      <span>100%</span>
+                    </div>
+                    <div className="progress-bar-bg">
+                      <div className="progress-bar-fill" style={{ width: '100%', background: '#10b981' }}></div>
+                    </div>
+                  </div>
+
+                  {/* Loan Details */}
+                  <div style={{ marginTop: '12px', fontSize: '0.8rem', color: '#cbd5e1', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                    <div>
+                      <span style={{ color: '#94a3b8' }}>Weekly Installment:</span>
+                      <div style={{ fontWeight: '600', color: '#10b981' }}>₹{loan.weeklyInstallment.toLocaleString('en-IN')}</div>
+                    </div>
+                    <div>
+                      <span style={{ color: '#94a3b8' }}>Term:</span>
+                      <div style={{ fontWeight: '600', color: '#10b981' }}>{loan.termWeeks} weeks</div>
+                    </div>
+                    <div>
+                      <span style={{ color: '#94a3b8' }}>Group Profit (Fee):</span>
+                      <div style={{ fontWeight: '600', color: '#fbbf24' }}>₹{loan.upfrontFee.toLocaleString('en-IN')}</div>
+                    </div>
+                    <div>
+                      <span style={{ color: '#94a3b8' }}>Completed:</span>
+                      <div style={{ fontWeight: '600', color: '#10b981' }}>{loan.createdAt}</div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          )
         )}
       </div>
 
