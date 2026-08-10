@@ -263,7 +263,12 @@ export const exportWeekSummaryImage = (summary, state, loggedInMember) => {
   line(0, height - 1, width, height - 1, C.bandBorder);
 
   // ---- Download ----
-  const filename = `${(state.groupName || 'isthooi').toLowerCase().replace(/[^a-z0-9]+/g, '-')}-week-${summary.weekNum}-summary.png`;
+  // Week number is zero-padded and the week's Sunday date included, so exports for
+  // different weeks are distinguishable and sort chronologically in a folder listing.
+  const slug = (state.groupName || 'isthooi').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  const weekPart = `week-${String(summary.weekNum).padStart(2, '0')}`;
+  const datePart = summary.date || 'no-date';
+  const filename = `${slug}-${weekPart}-${datePart}-summary.png`;
 
   canvas.toBlob((blob) => {
     if (!blob) return;
