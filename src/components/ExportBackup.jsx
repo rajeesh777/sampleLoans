@@ -79,7 +79,7 @@ export default function ExportBackup({ state, onImportState, onResetState }) {
           </span>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '16px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 260px), 1fr))', gap: '16px' }}>
           {/* JSON Backup */}
           <div style={{ background: 'var(--bg-dark)', padding: '20px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
             <h4 style={{ fontSize: '1.1rem', fontWeight: '700', marginBottom: '8px', color: '#10b981' }}>

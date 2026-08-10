@@ -120,30 +120,28 @@ export default function Navbar({ activeTab, setActiveTab, groupStats, loggedInMe
       </nav>
 
       {/* Mobile Bottom Navigation Bar */}
+      {/* aria-label/title carry the name because the visible label is hidden on
+          very narrow screens, where six labels cannot fit side by side. */}
       <div className="mobile-bottom-nav">
-        <button
-          className={`mobile-nav-btn ${activeTab === 'dashboard' ? 'active' : ''}`}
-          onClick={() => setActiveTab('dashboard')}
-        >
-          <LayoutDashboard size={20} />
-          <span>Home</span>
-        </button>
-
-        <button
-          className={`mobile-nav-btn ${activeTab === 'contributions' ? 'active' : ''}`}
-          onClick={() => setActiveTab('contributions')}
-        >
-          <Calendar size={20} />
-          <span>Contrib</span>
-        </button>
-
-        <button
-          className={`mobile-nav-btn ${activeTab === 'settlement' ? 'active' : ''}`}
-          onClick={() => setActiveTab('settlement')}
-        >
-          <Award size={20} />
-          <span>Wk 52</span>
-        </button>
+        {[
+          { tab: 'dashboard', label: 'Home', Icon: LayoutDashboard },
+          { tab: 'contributions', label: 'Contrib', Icon: Calendar },
+          { tab: 'loan-collections', label: 'Loans', Icon: HandCoins },
+          { tab: 'settlement', label: 'Wk 52', Icon: Award },
+          { tab: 'members', label: 'Members', Icon: Users },
+          { tab: 'settings', label: 'Settings', Icon: SettingsIcon }
+        ].map(({ tab, label, Icon }) => (
+          <button
+            key={tab}
+            className={`mobile-nav-btn ${activeTab === tab ? 'active' : ''}`}
+            onClick={() => setActiveTab(tab)}
+            aria-label={label}
+            title={label}
+          >
+            <Icon size={20} />
+            <span>{label}</span>
+          </button>
+        ))}
       </div>
     </>
   );

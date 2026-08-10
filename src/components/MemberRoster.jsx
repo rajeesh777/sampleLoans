@@ -130,7 +130,9 @@ export default function MemberRoster({ state }) {
       </div>
 
       {/* Members Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '16px' }}>
+      {/* min() keeps the track from staying 350px wide on a narrower phone,
+          which would push the whole page into horizontal overflow */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 350px), 1fr))', gap: '16px' }}>
         {state.members.map((member) => {
           const mStats = getMemberStats(state, member.id);
           const currentWeekData = state.weeks[state.currentWeekNum]?.collections[member.id] || {};
@@ -534,9 +536,10 @@ ${isAdvance ? `Note: Advance payment` : ''}`;
                 </div>
 
                 {/* Contributions Table */}
-                <div style={{ overflowX: 'auto' }}>
+                <div className="table-scroll" style={{ overflowX: 'auto' }}>
                   <table style={{
                     width: '100%',
+                    minWidth: '540px',
                     borderCollapse: 'collapse',
                     fontSize: '0.85rem'
                   }}>
