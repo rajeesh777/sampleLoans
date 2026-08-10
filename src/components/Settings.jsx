@@ -495,7 +495,7 @@ export default function Settings({ state, onUpdateSettings, onCeaseWeek, onToggl
 
         <div style={{ marginBottom: '16px' }}>
           <div style={{ fontSize: '0.9rem', color: '#94a3b8', marginBottom: '12px' }}>
-            <strong>Total Members ({state.members.length}):</strong> Login username = First Name, Password = abcd
+            <strong>Total Members ({state.members.length}):</strong> Login username = First Name
           </div>
 
           {state.members.length === 0 ? (

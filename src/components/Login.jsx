@@ -28,7 +28,7 @@ export default function Login({ members, onLogin }) {
 
     // Check password (hardcoded to 'abcd' for now)
     if (password !== 'abcd') {
-      setError('Incorrect password. (Hint: abcd)');
+      setError('Incorrect password.');
       return;
     }
 
@@ -186,13 +186,6 @@ export default function Login({ members, onLogin }) {
                 {showPassword ? '🙈' : '👁️'}
               </button>
             </div>
-            <div style={{
-              fontSize: '0.75rem',
-              color: '#94a3b8',
-              marginTop: '6px'
-            }}>
-              Default: <code style={{ background: 'rgba(255,255,255,0.1)', padding: '2px 4px', borderRadius: '3px' }}>abcd</code>
-            </div>
           </div>
 
           {/* Login Button */}
@@ -288,20 +281,6 @@ export default function Login({ members, onLogin }) {
           }}>
             💡 Click a name to auto-fill username
           </div>
-        </div>
-
-        {/* Info */}
-        <div style={{
-          background: 'rgba(34, 197, 94, 0.1)',
-          border: '1px solid #22c55e',
-          borderRadius: '8px',
-          padding: '12px',
-          marginTop: '24px',
-          fontSize: '0.75rem',
-          color: '#86efac',
-          lineHeight: '1.5'
-        }}>
-          <strong>ℹ️ Demo Mode:</strong> All members use password <code style={{ background: 'rgba(255,255,255,0.1)', padding: '2px 4px' }}>abcd</code>
         </div>
       </div>
     </div>

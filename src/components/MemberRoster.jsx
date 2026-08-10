@@ -381,7 +381,7 @@ ${isAdvance ? `Note: Advance payment` : ''}`;
         fontSize: '0.85rem',
         lineHeight: '1.5'
       }}>
-        <strong>ℹ️ Member Management:</strong> To add, edit, or delete members, go to <strong>Settings → Members Management</strong>. Member details include username (first name) used for login with password 'abcd'.
+        <strong>ℹ️ Member Management:</strong> To add, edit, or delete members, go to <strong>Settings → Members Management</strong>. A member's first name is their login username.
       </div>
 
       {/* Complete Ledger Modal */}
