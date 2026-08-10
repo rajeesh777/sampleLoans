@@ -628,7 +628,7 @@ export default function Settings({ state, onUpdateSettings, onCeaseWeek, onToggl
                 className="form-input"
                 value={memberForm.name}
                 onChange={(e) => setMemberForm({ ...memberForm, name: e.target.value })}
-                placeholder="e.g., Rajesh Kumar"
+                placeholder="e.g., Rajeesh"
               />
               <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '4px' }}>
                 First name will be used as login username

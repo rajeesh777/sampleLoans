@@ -725,3 +725,17 @@ h1, h2, h3, h4, h5, h6 {
   border-color: var(--primary);
   box-shadow: var(--primary-glow);
 }
+
+/* Contribution Book — person-card deck navigation */
+@keyframes deckInFromRight {
+  from { opacity: 0; transform: translateX(40px); }
+  to   { opacity: 1; transform: none; }
+}
+
+@keyframes deckInFromLeft {
+  from { opacity: 0; transform: translateX(-40px); }
+  to   { opacity: 1; transform: none; }
+}
+
+.deck-in-right { animation: deckInFromRight 0.2s ease-out; }
+.deck-in-left  { animation: deckInFromLeft 0.2s ease-out; }

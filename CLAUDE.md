@@ -17,7 +17,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Architecture
 
 ### State Structure
-The app uses a flat React state persisted to localStorage (key: `ISTHOOI_APP_STATE_V2`). Optional Supabase sync is available if credentials are configured.
+The app uses a flat React state persisted to localStorage (key: `ISTHOOI_APP_STATE_V3`). Optional Supabase sync is available if credentials are configured.
 
 ```
 {
@@ -126,12 +126,12 @@ Navigate to http://localhost:5173. Changes auto-reload.
 ### Testing a Change
 - Manual testing in browser: Use the dev server and interact with UI
 - No automated test suite; verify via manual clicks, week toggles, loan creation
-- Check localStorage in DevTools (`Application → Local Storage → ISTHOOI_APP_STATE_V2`)
+- Check localStorage in DevTools (`Application → Local Storage → ISTHOOI_APP_STATE_V3`)
 
 ### Debugging
 - Use browser DevTools → React DevTools extension to inspect component state/props
 - Log state via `console.log(state)` in handlers
-- Clear localStorage if corrupted: `localStorage.removeItem('ISTHOOI_APP_STATE_V2')`
+- Clear localStorage if corrupted: `localStorage.removeItem('ISTHOOI_APP_STATE_V3')`
 
 ## Database Schema (Supabase)
 Schema available in `supabase_schema.sql`. The app does NOT enforce schema validation—Supabase sync is best-effort and optional. Focus on localStorage correctness.

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Phone, CreditCard, CheckCircle2, AlertCircle, Zap, TrendingUp, BookOpen, X } from 'lucide-react';
-import { getMemberStats } from '../utils/storage';
+import { Users, Phone, CreditCard, CheckCircle2, AlertCircle, Zap, TrendingUp, BookOpen, X, ChevronDown, ChevronUp, Calendar, Tag } from 'lucide-react';
+import { getMemberStats, formatDateDDMMYY } from '../utils/storage';
 
 export default function MemberRoster({ state }) {
   const [selectedMemberForLedger, setSelectedMemberForLedger] = useState(null);
@@ -9,6 +9,8 @@ export default function MemberRoster({ state }) {
   const [ledgerLoanFilter, setLedgerLoanFilter] = useState('ALL'); // ALL or loan nickname
   const [selectedLoanForDetails, setSelectedLoanForDetails] = useState(null);
   const [ledgerSubPage, setLedgerSubPage] = useState('contributions'); // 'contributions' or 'loans'
+  const [expandedLoanInModal, setExpandedLoanInModal] = useState(null);
+  const [ledgerLoanStatusFilter, setLedgerLoanStatusFilter] = useState('ALL'); // ALL, ACTIVE, CLOSED
 
   // Reset filters when opening a new member's ledger
   useEffect(() => {
@@ -17,8 +19,12 @@ export default function MemberRoster({ state }) {
       setLedgerFilterMode('ALL');
       setLedgerLoanFilter('ALL');
       setLedgerSubPage('contributions');
+      setExpandedLoanInModal(null);
+      setLedgerLoanStatusFilter('ALL');
     }
   }, [selectedMemberForLedger?.id]);
+
+  const isLoanClosed = (loan) => loan.status !== 'ACTIVE';
 
   const getMemberLedger = (memberId) => {
     const ledger = [];
@@ -86,6 +92,22 @@ export default function MemberRoster({ state }) {
     const loans = state.loans.filter(l => l.memberId === memberId);
     return [...new Map(loans.map(l => [l.nickname || 'Loan', l])).entries()]
       .map(([nickname, loan]) => ({ nickname, loanId: loan.id }));
+  };
+
+  const getLoanTransactionsForMember = (loan) => {
+    const transactions = [];
+    for (let week = loan.startWeekNum; week < loan.startWeekNum + loan.termWeeks && week <= 52; week++) {
+      const weekData = state.weeks[week];
+      const isPaymentWeek = weekData?.collections?.[loan.memberId]?.loanInstallmentPaid || false;
+      transactions.push({
+        week,
+        date: weekData?.date,
+        displayDate: weekData?.displayDate,
+        paid: isPaymentWeek,
+        amount: loan.weeklyInstallment
+      });
+    }
+    return transactions.slice(0, 10);
   };
 
   return (
@@ -444,6 +466,7 @@ ${isAdvance ? `Note: Advance payment` : ''}`;
                   setLedgerSubPage('loans');
                   setLedgerFilterMode('ALL');
                   setLedgerLoanFilter('ALL');
+                  setLedgerLoanStatusFilter('ALL');
                 }}
                 style={{
                   padding: '12px 16px',
@@ -585,198 +608,198 @@ ${isAdvance ? `Note: Advance payment` : ''}`;
             {/* LOANS TAB */}
             {ledgerSubPage === 'loans' && (
               <div>
-                {/* Sort & Filter Controls */}
-                <div style={{ display: 'flex', gap: '12px', marginBottom: '16px', flexWrap: 'wrap', alignItems: 'center' }}>
-                  <div>
-                    <label style={{ fontSize: '0.8rem', fontWeight: '600', color: '#94a3b8', marginRight: '8px' }}>Sort by:</label>
-                    <select
-                      value={ledgerSortBy}
-                      onChange={(e) => setLedgerSortBy(e.target.value)}
-                      style={{
-                        background: 'var(--bg-dark)',
-                        border: '1px solid #374151',
-                        borderRadius: '6px',
-                        padding: '6px 10px',
-                        color: '#e5e7eb',
-                        fontSize: '0.85rem',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      <option value="week-desc">Week (Newest First)</option>
-                      <option value="week-asc">Week (Oldest First)</option>
-                      <option value="status">Status (Paid First)</option>
-                      <option value="amount">Amount (Highest First)</option>
-                    </select>
-                  </div>
+                {(() => {
+                  const memberLoans = state.loans.filter(l => l.memberId === selectedMemberForLedger.id);
+                  const activeCount = memberLoans.filter(l => !isLoanClosed(l)).length;
+                  const closedCount = memberLoans.length - activeCount;
 
-                  <div>
-                    <label style={{ fontSize: '0.8rem', fontWeight: '600', color: '#94a3b8', marginRight: '8px' }}>Filter:</label>
-                    <select
-                      value={ledgerFilterMode}
-                      onChange={(e) => setLedgerFilterMode(e.target.value)}
-                      style={{
-                        background: 'var(--bg-dark)',
-                        border: '1px solid #374151',
-                        borderRadius: '6px',
-                        padding: '6px 10px',
-                        color: '#e5e7eb',
-                        fontSize: '0.85rem',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      <option value="ALL">All Weeks</option>
-                      <option value="LOAN_PAID">Paid</option>
-                      <option value="UNPAID">Unpaid</option>
-                    </select>
-                  </div>
+                  const visibleLoans = memberLoans.filter(l => {
+                    if (ledgerLoanStatusFilter === 'ACTIVE') return !isLoanClosed(l);
+                    if (ledgerLoanStatusFilter === 'CLOSED') return isLoanClosed(l);
+                    return true;
+                  });
 
-                  {getMemberAvailableLoanNicknames(selectedMemberForLedger.id).length > 0 && (
-                    <div>
-                      <label style={{ fontSize: '0.8rem', fontWeight: '600', color: '#94a3b8', marginRight: '8px' }}>Loan:</label>
-                      <select
-                        value={ledgerLoanFilter}
-                        onChange={(e) => setLedgerLoanFilter(e.target.value)}
-                        style={{
-                          background: 'var(--bg-dark)',
-                          border: '1px solid #374151',
-                          borderRadius: '6px',
-                          padding: '6px 10px',
-                          color: '#e5e7eb',
-                          fontSize: '0.85rem',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        <option value="ALL">All Loans</option>
-                        {getMemberAvailableLoanNicknames(selectedMemberForLedger.id).map(({ nickname, loanId }) => (
-                          <option key={loanId} value={nickname} style={{ borderLeft: `4px solid ${getLoanColor(loanId)}` }}>
-                            ● {nickname}
-                          </option>
-                        ))}
-                      </select>
+                  const statusTabs = [
+                    { key: 'ALL', label: `All (${memberLoans.length})`, color: '#f59e0b' },
+                    { key: 'ACTIVE', label: `⏳ Active (${activeCount})`, color: '#10b981' },
+                    { key: 'CLOSED', label: `✓ Closed (${closedCount})`, color: '#6b7280' }
+                  ];
+
+                  return memberLoans.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '40px 16px', color: '#94a3b8' }}>
+                      <p style={{ fontSize: '1rem' }}>📭 No loans for this member</p>
                     </div>
-                  )}
-                </div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                      {/* Loan Status Filter */}
+                      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+                        <label style={{ fontSize: '0.8rem', fontWeight: '600', color: '#94a3b8', marginRight: '4px' }}>Show:</label>
+                        {statusTabs.map(tab => {
+                          const isSelected = ledgerLoanStatusFilter === tab.key;
+                          return (
+                            <button
+                              key={tab.key}
+                              onClick={() => {
+                                setLedgerLoanStatusFilter(tab.key);
+                                setExpandedLoanInModal(null);
+                              }}
+                              style={{
+                                padding: '6px 12px',
+                                fontSize: '0.8rem',
+                                fontWeight: '600',
+                                borderRadius: '999px',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s',
+                                background: isSelected ? `${tab.color}33` : 'transparent',
+                                border: `1px solid ${isSelected ? tab.color : '#374151'}`,
+                                color: isSelected ? tab.color : '#94a3b8'
+                              }}
+                            >
+                              {tab.label}
+                            </button>
+                          );
+                        })}
+                      </div>
 
-                {/* Loans Table */}
-                <div style={{ overflowX: 'auto' }}>
-                  <table style={{
-                    width: '100%',
-                    borderCollapse: 'collapse',
-                    fontSize: '0.85rem'
-                  }}>
-                    <thead>
-                      <tr style={{ background: 'rgba(245, 158, 11, 0.1)', borderBottom: '2px solid #f59e0b' }}>
-                        <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', color: '#f59e0b' }}>Week</th>
-                        <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', color: '#f59e0b' }}>Due Date</th>
-                        <th style={{ padding: '12px', textAlign: 'center', fontWeight: '600', color: '#f59e0b' }}>Status</th>
-                        <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', color: '#f59e0b' }}>Loan Name</th>
-                        <th style={{ padding: '12px', textAlign: 'center', fontWeight: '600', color: '#f59e0b' }}>Amount</th>
-                        <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', color: '#f59e0b' }}>Paid Date</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {(() => {
-                        let ledger = getMemberLedger(selectedMemberForLedger.id);
+                      {visibleLoans.length === 0 && (
+                        <div style={{ textAlign: 'center', padding: '32px 16px', color: '#94a3b8' }}>
+                          <p style={{ fontSize: '0.95rem' }}>
+                            {ledgerLoanStatusFilter === 'CLOSED'
+                              ? '📭 No closed loans for this member yet'
+                              : '📭 No active loans for this member'}
+                          </p>
+                        </div>
+                      )}
 
-                        // Filter to only show weeks with loan installments
-                        ledger = ledger.filter(e => e.loanNickname);
+                      {visibleLoans.map((loan) => {
+                        const transactions = getLoanTransactionsForMember(loan);
+                        const paidCount = transactions.filter(t => t.paid).length;
+                        const isExpanded = expandedLoanInModal === loan.id;
+                        const isClosed = isLoanClosed(loan);
 
-                        // Apply filter - default to showing only paid loans
-                        if (ledgerFilterMode === 'UNPAID') {
-                          ledger = ledger.filter(e => !e.loanPaid);
-                        } else {
-                          // Default to LOAN_PAID for loans tab
-                          ledger = ledger.filter(e => e.loanPaid);
-                        }
+                        return (
+                          <div key={loan.id} style={{ background: 'var(--bg-dark)', border: `1px solid ${isClosed ? 'rgba(107, 114, 128, 0.3)' : 'rgba(251, 191, 36, 0.2)'}`, borderRadius: '8px', overflow: 'hidden' }}>
+                            {/* Loan Header */}
+                            <div
+                              onClick={() => setExpandedLoanInModal(isExpanded ? null : loan.id)}
+                              style={{
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                padding: '16px',
+                                cursor: 'pointer',
+                                background: isClosed
+                                  ? 'linear-gradient(135deg, rgba(107, 114, 128, 0.12) 0%, rgba(75, 85, 99, 0.05) 100%)'
+                                  : 'linear-gradient(135deg, rgba(251, 191, 36, 0.1) 0%, rgba(245, 158, 11, 0.05) 100%)',
+                                borderBottom: isExpanded ? `1px solid ${isClosed ? 'rgba(107, 114, 128, 0.3)' : 'rgba(251, 191, 36, 0.2)'}` : 'none'
+                              }}
+                            >
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, flexWrap: 'wrap' }}>
+                                <div style={{ fontSize: '1rem', fontWeight: '700', color: '#f3f4f6' }}>
+                                  {loan.nickname}
+                                </div>
+                                <span style={{
+                                  fontSize: '0.7rem',
+                                  fontWeight: '700',
+                                  padding: '2px 8px',
+                                  borderRadius: '999px',
+                                  background: isClosed ? 'rgba(107, 114, 128, 0.25)' : 'rgba(16, 185, 129, 0.2)',
+                                  color: isClosed ? '#9ca3af' : '#10b981',
+                                  border: `1px solid ${isClosed ? 'rgba(107, 114, 128, 0.4)' : 'rgba(16, 185, 129, 0.4)'}`
+                                }}>
+                                  {isClosed ? '✓ CLOSED' : '⏳ ACTIVE'}
+                                </span>
+                                <div style={{ fontSize: '0.85rem', color: '#94a3b8' }}>
+                                  ₹{loan.weeklyInstallment}/week • {transactions.length} weeks • {paidCount} paid
+                                </div>
+                              </div>
 
-                        // Apply loan nickname filter
-                        if (ledgerLoanFilter !== 'ALL') {
-                          ledger = ledger.filter(e => (e.loanNickname || '').trim() === (ledgerLoanFilter || '').trim());
-                        }
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                <div style={{ textAlign: 'right' }}>
+                                  <div style={{ fontWeight: '700', fontSize: '1.1rem', color: paidCount === transactions.length ? '#10b981' : '#f59e0b' }}>
+                                    ₹{loan.repaidAmount}
+                                  </div>
+                                  <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+                                    of ₹{loan.disbursedAmount}
+                                  </div>
+                                </div>
+                                {isExpanded ? <ChevronUp size={20} color="#fbbf24" /> : <ChevronDown size={20} color="#94a3b8" />}
+                              </div>
+                            </div>
 
-                        // Apply sort
-                        if (ledgerSortBy === 'week-asc') {
-                          ledger = ledger.sort((a, b) => a.weekNum - b.weekNum);
-                        } else if (ledgerSortBy === 'week-desc') {
-                          ledger = ledger.sort((a, b) => b.weekNum - a.weekNum);
-                        } else if (ledgerSortBy === 'status') {
-                          ledger = ledger.sort((a, b) => (b.loanPaid ? 1 : 0) - (a.loanPaid ? 1 : 0));
-                        } else if (ledgerSortBy === 'amount') {
-                          ledger = ledger.sort((a, b) => b.loanAmount - a.loanAmount);
-                        }
+                            {/* Transaction Details */}
+                            {isExpanded && (
+                              <div style={{ padding: '16px', background: 'rgba(0,0,0,0.3)' }}>
+                                <div style={{ marginBottom: '16px' }}>
+                                  <h4 style={{ fontSize: '0.9rem', fontWeight: '700', color: '#e5e7eb', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                    <Calendar size={14} /> Payment Schedule
+                                  </h4>
+                                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '8px' }}>
+                                    {transactions.map((tx, idx) => (
+                                      <div
+                                        key={idx}
+                                        onClick={() => {
+                                          // Call the handler to toggle loan payment
+                                          // This requires passing the handler from App.jsx
+                                        }}
+                                        style={{
+                                          padding: '10px',
+                                          borderRadius: '6px',
+                                          background: tx.paid ? 'rgba(16, 185, 129, 0.15)' : 'rgba(243, 244, 246, 0.05)',
+                                          border: `1px solid ${tx.paid ? 'rgba(16, 185, 129, 0.3)' : 'rgba(243, 244, 246, 0.1)'}`,
+                                          cursor: 'pointer',
+                                          transition: 'all 0.2s',
+                                          textAlign: 'center'
+                                        }}
+                                        onMouseEnter={(e) => e.currentTarget.style.background = tx.paid ? 'rgba(16, 185, 129, 0.25)' : 'rgba(243, 244, 246, 0.1)'}
+                                        onMouseLeave={(e) => e.currentTarget.style.background = tx.paid ? 'rgba(16, 185, 129, 0.15)' : 'rgba(243, 244, 246, 0.05)'}
+                                      >
+                                        <div style={{ fontSize: '0.85rem', fontWeight: '600', color: tx.paid ? '#10b981' : '#f3f4f6' }}>
+                                          W{tx.week}
+                                        </div>
+                                        <div style={{ fontSize: '0.7rem', color: '#94a3b8', marginTop: '2px' }}>
+                                          {tx.displayDate?.split(' ')[0] || formatDateDDMMYY(tx.date)}
+                                        </div>
+                                        <div style={{ fontSize: '0.75rem', color: tx.paid ? '#10b981' : '#f87171', fontWeight: '600', marginTop: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '2px' }}>
+                                          {tx.paid && <CheckCircle2 size={12} />}
+                                          {tx.paid ? '✓' : '○'}
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
 
-                        return ledger.length === 0 ? (
-                          <tr>
-                            <td colSpan="6" style={{ padding: '24px', textAlign: 'center', color: '#6b7280' }}>
-                              No loan history for this member
-                            </td>
-                          </tr>
-                        ) : (
-                          ledger.map((entry) => (
-                            <tr key={entry.loanId ? `${entry.weekNum}-${entry.loanId}` : entry.weekNum} style={{ borderBottom: '1px solid rgba(255,255,255,0.1)', borderLeft: entry.loanId ? `4px solid ${getLoanColor(entry.loanId)}` : 'none', background: entry.weekNum === state.currentWeekNum ? 'rgba(245, 158, 11, 0.05)' : 'transparent' }}>
-                              <td style={{ padding: '12px', fontWeight: '600', color: '#60a5fa' }}>Week {entry.weekNum}</td>
-                              <td style={{ padding: '12px', color: '#cbd5e1' }}>{entry.displayDate}</td>
-                              <td style={{ padding: '12px', textAlign: 'center' }}>
-                                {entry.loanPaid ? (
-                                  <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', color: '#f59e0b' }}>
-                                    <CheckCircle2 size={14} /> Paid
-                                  </span>
-                                ) : (
-                                  <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', color: '#f87171' }}>
-                                    <AlertCircle size={14} /> Due
-                                  </span>
-                                )}
-                              </td>
-                              <td style={{ padding: '12px', textAlign: 'left', color: '#fbbf24', fontWeight: '600', fontSize: '0.9rem' }}>
-                                <button
-                                  onClick={() => {
-                                    const loanForWeek = state.loans.find(
-                                      l => l.memberId === selectedMemberForLedger.id &&
-                                        l.startWeekNum <= entry.weekNum &&
-                                        l.startWeekNum + l.termWeeks > entry.weekNum
-                                    );
-                                    if (loanForWeek) {
-                                      setSelectedLoanForDetails(loanForWeek);
-                                    }
-                                  }}
-                                  style={{
-                                    background: `${getLoanColor(entry.loanId)}20`,
-                                    padding: '6px 12px',
-                                    borderRadius: '6px',
-                                    border: `2px solid ${getLoanColor(entry.loanId)}`,
-                                    color: getLoanColor(entry.loanId),
-                                    fontWeight: '600',
-                                    cursor: 'pointer',
-                                    transition: 'all 0.2s'
-                                  }}
-                                  onMouseEnter={(e) => {
-                                    const color = getLoanColor(entry.loanId);
-                                    e.currentTarget.style.background = `${color}40`;
-                                    e.currentTarget.style.borderColor = color;
-                                  }}
-                                  onMouseLeave={(e) => {
-                                    const color = getLoanColor(entry.loanId);
-                                    e.currentTarget.style.background = `${color}20`;
-                                    e.currentTarget.style.borderColor = color;
-                                  }}
-                                  title="Click to view loan details"
-                                >
-                                  {entry.loanNickname}
-                                </button>
-                              </td>
-                              <td style={{ padding: '12px', textAlign: 'center', fontWeight: '600', color: entry.loanPaid ? '#f59e0b' : '#f87171' }}>
-                                ₹{entry.loanAmount.toLocaleString('en-IN')}
-                              </td>
-                              <td style={{ padding: '12px', textAlign: 'left', color: entry.loanPaidAt ? '#f59e0b' : '#6b7280', fontWeight: entry.loanPaidAt ? '600' : 'normal' }}>
-                                {entry.loanPaidAt || '-'}
-                              </td>
-                            </tr>
-                          ))
+                                {/* Loan Summary */}
+                                <div style={{ background: 'rgba(251, 191, 36, 0.1)', border: '1px solid rgba(251, 191, 36, 0.2)', borderRadius: '8px', padding: '12px' }}>
+                                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', fontSize: '0.9rem' }}>
+                                    <div>
+                                      <span style={{ color: '#94a3b8' }}>Loan Amount:</span>
+                                      <div style={{ fontWeight: '700', color: '#fbbf24', marginTop: '2px' }}>₹{loan.disbursedAmount}</div>
+                                    </div>
+                                    <div>
+                                      <span style={{ color: '#94a3b8' }}>Repaid So Far:</span>
+                                      <div style={{ fontWeight: '700', color: '#10b981', marginTop: '2px' }}>₹{loan.repaidAmount}</div>
+                                    </div>
+                                    <div>
+                                      <span style={{ color: '#94a3b8' }}>Status:</span>
+                                      <div style={{ fontWeight: '700', color: loan.status === 'REPAID' ? '#10b981' : '#f59e0b', marginTop: '2px' }}>
+                                        {loan.status}
+                                      </div>
+                                    </div>
+                                    <div>
+                                      <span style={{ color: '#94a3b8' }}>Upfront Fee:</span>
+                                      <div style={{ fontWeight: '700', color: '#94a3b8', marginTop: '2px' }}>₹{loan.upfrontFee}</div>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                          </div>
                         );
-                      })()}
-                    </tbody>
-                  </table>
-                </div>
+                      })}
+                    </div>
+                  );
+                })()}
               </div>
             )}
 

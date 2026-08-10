@@ -116,7 +116,7 @@ export default function Login({ members, onLogin }) {
               className="form-input"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              placeholder="e.g., Rajesh"
+              placeholder="e.g., Rajeesh"
               style={{
                 width: '100%',
                 padding: '10px 12px',

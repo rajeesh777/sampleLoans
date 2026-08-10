@@ -2,7 +2,10 @@
 
 import { isSupabaseConfigured, fetchSupabaseState, syncStateToSupabase } from './supabaseClient';
 
-const STORAGE_KEY = 'ISTHOOI_APP_STATE_V2';
+// Bumped to V3 when the member roster was replaced — member-keyed collections and
+// loans from a V2 state no longer match the current members, so V2 state is not
+// migrated. Old V2 data is left in localStorage untouched rather than deleted.
+const STORAGE_KEY = 'ISTHOOI_APP_STATE_V3';
 
 // Format date as DD/MM/YY
 export const formatDateDDMMYY = (dateStr) => {
@@ -14,18 +17,17 @@ export const formatDateDDMMYY = (dateStr) => {
   return `${day}/${month}/${year}`;
 };
 
-// Sample 10 initial members
+// 9 initial members, listed in alphabetical order by name
 export const INITIAL_MEMBERS = [
-  { id: 'm1', name: 'Rajesh Kumar', phone: '+91 9876543210', upiId: 'rajesh@upi', avatarColor: '#10b981' },
-  { id: 'm2', name: 'Amit Sharma', phone: '+91 9876543211', upiId: 'amit@upi', avatarColor: '#6366f1' },
-  { id: 'm3', name: 'Priya Patel', phone: '+91 9876543212', upiId: 'priya@upi', avatarColor: '#ec4899' },
-  { id: 'm4', name: 'Suresh Raina', phone: '+91 9876543213', upiId: 'suresh@upi', avatarColor: '#f59e0b' },
-  { id: 'm5', name: 'Vikram Singh', phone: '+91 9876543214', upiId: 'vikram@upi', avatarColor: '#3b82f6' },
-  { id: 'm6', name: 'Ananya Roy', phone: '+91 9876543215', upiId: 'ananya@upi', avatarColor: '#8b5cf6' },
-  { id: 'm7', name: 'Deepak Verma', phone: '+91 9876543216', upiId: 'deepak@upi', avatarColor: '#14b8a6' },
-  { id: 'm8', name: 'Neha Gupta', phone: '+91 9876543217', upiId: 'neha@upi', avatarColor: '#f43f5e' },
-  { id: 'm9', name: 'Rohan Mehta', phone: '+91 9876543218', upiId: 'rohan@upi', avatarColor: '#84cc16' },
-  { id: 'm10', name: 'Kavita Reddy', phone: '+91 9876543219', upiId: 'kavita@upi', avatarColor: '#06b6d4' }
+  { id: 'm1', name: 'Krishnadas', phone: '+91 9876543210', upiId: 'krishnadas@upi', avatarColor: '#10b981' },
+  { id: 'm2', name: 'Murali', phone: '+91 9876543211', upiId: 'murali@upi', avatarColor: '#6366f1' },
+  { id: 'm3', name: 'Rajan', phone: '+91 9876543212', upiId: 'rajan@upi', avatarColor: '#ec4899' },
+  { id: 'm4', name: 'Rajeesh', phone: '+91 9876543213', upiId: 'rajeesh@upi', avatarColor: '#f59e0b' },
+  { id: 'm5', name: 'Sajeev', phone: '+91 9876543214', upiId: 'sajeev@upi', avatarColor: '#3b82f6' },
+  { id: 'm6', name: 'Sathyaprakasan', phone: '+91 9876543215', upiId: 'sathyaprakasan@upi', avatarColor: '#8b5cf6' },
+  { id: 'm7', name: 'Udayan', phone: '+91 9876543216', upiId: 'udayan@upi', avatarColor: '#14b8a6' },
+  { id: 'm8', name: 'Ullas', phone: '+91 9876543217', upiId: 'ullas@upi', avatarColor: '#f43f5e' },
+  { id: 'm9', name: 'Vidyadas', phone: '+91 9876543218', upiId: 'vidyadas@upi', avatarColor: '#84cc16' }
 ];
 
 // Helper to generate 52 Sundays starting from a given date
@@ -128,7 +130,7 @@ export const getInitialState = () => {
     });
   });
 
-  // Test scenario: Mark Priya (m3) as having unpaid weeks 1 and 2 to demo the dues feature
+  // Test scenario: Mark Rajan (m3) as having unpaid weeks 1 and 2 to demo the dues feature
   sampleState.weeks[1].collections['m3'].paid = false;
   sampleState.weeks[1].collections['m3'].paidAt = null;
   sampleState.weeks[2].collections['m3'].paid = false;
@@ -225,6 +227,145 @@ export const getMemberStats = (state, memberId) => {
     activeLoans,
     totalLoansTaken: memberLoans.length,
     totalLoanLiability
+  };
+};
+
+// Cash actually held by the group at the end of a given week, derived from the weekly
+// collection records so the figure can be audited week by week. Returns 0 for weekNum < 1.
+//
+// Note this runs slightly lower than groupStats.treasuryCash. That figure adds each loan's
+// upfrontFee as cash in *and* subtracts disbursedAmount (which is already requested minus
+// fee), so the fee is counted twice in the group's favour. Here a loan costs exactly the
+// cash handed over — disbursedAmount — which keeps every week's closing balance equal to
+// the next week's opening balance.
+export const getCashAsOfWeek = (state, weekNum) => {
+  if (weekNum < 1) return 0;
+
+  const weeklyAmount = state.weeklyAmount || 1000;
+  let contributions = 0;
+  let loanReturns = 0;
+
+  for (let w = 1; w <= weekNum; w++) {
+    const weekData = state.weeks[w];
+    if (!weekData || !weekData.collections) continue;
+
+    Object.keys(weekData.collections).forEach((mId) => {
+      const rec = weekData.collections[mId];
+      if (rec.paid) contributions += (rec.amount || weeklyAmount);
+      if (rec.loanInstallmentPaid) loanReturns += (rec.loanInstallmentAmount || 0);
+    });
+  }
+
+  // Only loans already handed out by this week affect the balance. The upfront fee
+  // never leaves the group, so the disbursed portion is the whole cash outflow.
+  let disbursed = 0;
+  (state.loans || []).forEach((l) => {
+    if (l.startWeekNum <= weekNum) disbursed += l.disbursedAmount;
+  });
+
+  return contributions + loanReturns - disbursed;
+};
+
+// Everything that happened in a single week, for the dashboard week summary.
+export const getWeekSummary = (state, weekNum) => {
+  const weeklyAmount = state.weeklyAmount || 1000;
+  const weekData = state.weeks[weekNum] || { collections: {} };
+  const collections = weekData.collections || {};
+  const members = state.members || [];
+  const loans = state.loans || [];
+
+  const memberName = (id) => (members.find(m => m.id === id) || {}).name || 'Unknown';
+
+  // --- 1. Contributions ---
+  const contributions = [];
+  const notPaid = [];
+
+  members.forEach((m) => {
+    const rec = collections[m.id];
+    const amount = rec?.amount || weeklyAmount;
+
+    if (rec?.paid) {
+      // Compare when it was actually paid against the Sunday it was due for.
+      let timing = 'ON_TIME';
+      if (rec.paidAt && weekData.date) {
+        if (rec.paidAt < weekData.date) timing = 'ADVANCE';
+        else if (rec.paidAt > weekData.date) timing = 'LATE';
+      }
+      contributions.push({
+        memberId: m.id,
+        name: m.name,
+        avatarColor: m.avatarColor,
+        amount,
+        paymentMethod: rec.paymentMethod || 'UPI',
+        paidAt: rec.paidAt || null,
+        timing
+      });
+    } else {
+      notPaid.push({ memberId: m.id, name: m.name, avatarColor: m.avatarColor, amount });
+    }
+  });
+
+  const totalContribution = contributions.reduce((sum, c) => sum + c.amount, 0);
+
+  // --- 2. Loan returns ---
+  const loanReturns = [];
+  members.forEach((m) => {
+    const rec = collections[m.id];
+    if (!rec?.loanInstallmentPaid) return;
+
+    // The collection record carries one loan-installment flag per member per week,
+    // so fall back to the member's active-loan installments when no amount is stored.
+    const activeLoans = loans.filter(l => l.memberId === m.id && l.status === 'ACTIVE');
+    const fallback = activeLoans.reduce((sum, l) => sum + (l.weeklyInstallment || 0), 0);
+    const amount = rec.loanInstallmentAmount || fallback;
+
+    loanReturns.push({
+      memberId: m.id,
+      name: m.name,
+      avatarColor: m.avatarColor,
+      amount,
+      paidAt: rec.loanInstallmentPaidAt || null,
+      loanNicknames: activeLoans.map(l => l.nickname).filter(Boolean)
+    });
+  });
+
+  const totalLoanReturn = loanReturns.reduce((sum, r) => sum + r.amount, 0);
+
+  // --- 3. New loans issued this week ---
+  const newLoans = loans
+    .filter(l => l.startWeekNum === weekNum)
+    .map(l => ({
+      loanId: l.id,
+      memberId: l.memberId,
+      name: memberName(l.memberId),
+      nickname: l.nickname || '',
+      requestedAmount: l.requestedAmount,
+      disbursedAmount: l.disbursedAmount,
+      upfrontFee: l.upfrontFee,
+      status: l.status
+    }));
+
+  const totalNewLoanRequested = newLoans.reduce((sum, l) => sum + l.requestedAmount, 0);
+  const totalNewLoanDisbursed = newLoans.reduce((sum, l) => sum + l.disbursedAmount, 0);
+
+  // --- 4. Calculations ---
+  const openingCash = getCashAsOfWeek(state, weekNum - 1);
+  const closingCash = (totalContribution + totalLoanReturn) + openingCash - totalNewLoanDisbursed;
+
+  return {
+    weekNum,
+    date: weekData.date,
+    displayDate: weekData.displayDate,
+    contributions,
+    notPaid,
+    totalContribution,
+    loanReturns,
+    totalLoanReturn,
+    newLoans,
+    totalNewLoanRequested,
+    totalNewLoanDisbursed,
+    openingCash,
+    closingCash
   };
 };
 

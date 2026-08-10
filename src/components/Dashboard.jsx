@@ -1,8 +1,9 @@
 import React from 'react';
 import { IndianRupee, ShieldAlert, ArrowUpRight, CheckCircle2, Clock, HandCoins, AlertCircle, Award, AlertTriangle, MessageCircle } from 'lucide-react';
 import { getMemberStats } from '../utils/storage';
+import WeekSummary from './WeekSummary';
 
-export default function Dashboard({ state, groupStats, setActiveTab, onTogglePayment }) {
+export default function Dashboard({ state, groupStats, setActiveTab, onTogglePayment, loggedInMember }) {
   const currentWeekNum = state.currentWeekNum || 1;
   const currentWeekData = state.weeks[currentWeekNum] || { collections: {} };
 
@@ -45,7 +46,7 @@ export default function Dashboard({ state, groupStats, setActiveTab, onTogglePay
             className="btn btn-primary"
             onClick={() => setActiveTab('ledger')}
           >
-            Open Full Ledger <ArrowUpRight size={16} />
+            Open Fund Book <ArrowUpRight size={16} />
           </button>
         </div>
 
@@ -60,6 +61,9 @@ export default function Dashboard({ state, groupStats, setActiveTab, onTogglePay
           </div>
         </div>
       </div>
+
+      {/* Week Summary */}
+      <WeekSummary state={state} loggedInMember={loggedInMember} />
 
       {/* Critical Defaulters Alert Banner */}
       {criticalDefaulters.length > 0 && (

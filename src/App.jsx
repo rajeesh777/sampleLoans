@@ -475,6 +475,7 @@ export default function App() {
             groupStats={groupStats}
             setActiveTab={setActiveTab}
             onTogglePayment={handleTogglePayment}
+            loggedInMember={loggedInMember}
           />
         )}
 
@@ -506,13 +507,8 @@ export default function App() {
         {activeTab === 'ledger' && (
           <SundayLedger
             state={state}
-            onTogglePayment={handleTogglePayment}
             onToggleLoanInstallment={handleToggleLoanInstallment}
-            onMarkAllPaid={handleMarkAllPaid}
-            onChangePaymentMethod={handleChangePaymentMethod}
-            onAdvancePayment={handleAdvancePayment}
             onAdvanceLoanInstallment={handleAdvanceLoanInstallment}
-            onCeaseWeek={handleCeaseWeek}
           />
         )}
 
