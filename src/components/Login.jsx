@@ -21,14 +21,11 @@ export default function Login({ members, onLogin }) {
       m.name.split(' ')[0].toLowerCase() === username.toLowerCase()
     );
 
-    if (!member) {
-      setError('Member not found. Use your first name as username.');
-      return;
-    }
-
-    // Check password (hardcoded to 'abcd' for now)
-    if (password !== 'abcd') {
-      setError('Incorrect password.');
+    // Deliberately one message for both an unknown name and a wrong password.
+    // Distinct errors would let someone enumerate valid member names by guessing.
+    // (hardcoded to 'abcd' for now)
+    if (!member || password !== 'abcd') {
+      setError('Invalid username or password.');
       return;
     }
 
@@ -116,7 +113,7 @@ export default function Login({ members, onLogin }) {
               className="form-input"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              placeholder="e.g., Rajeesh"
+              placeholder="Your first name"
               style={{
                 width: '100%',
                 padding: '10px 12px',
@@ -133,7 +130,7 @@ export default function Login({ members, onLogin }) {
               color: '#94a3b8',
               marginTop: '6px'
             }}>
-              Enter your first name exactly as shown in members list
+              Enter your first name as registered with the group
             </div>
           </div>
 
@@ -215,73 +212,6 @@ export default function Login({ members, onLogin }) {
             Login
           </button>
         </form>
-
-        {/* Member List */}
-        <div style={{
-          background: 'rgba(102, 126, 234, 0.1)',
-          border: '1px solid #667eea',
-          borderRadius: '8px',
-          padding: '16px',
-          marginTop: '24px'
-        }}>
-          <div style={{
-            fontSize: '0.8rem',
-            fontWeight: '600',
-            color: '#94a3b8',
-            marginBottom: '12px',
-            textTransform: 'uppercase',
-            letterSpacing: '0.5px'
-          }}>
-            📋 Members
-          </div>
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))',
-            gap: '8px'
-          }}>
-            {members.map((member) => {
-              const firstName = member.name.split(' ')[0];
-              return (
-                <div
-                  key={member.id}
-                  onClick={() => {
-                    setUsername(firstName);
-                    setError('');
-                  }}
-                  style={{
-                    background: 'var(--bg-dark)',
-                    padding: '8px 12px',
-                    borderRadius: '6px',
-                    fontSize: '0.8rem',
-                    cursor: 'pointer',
-                    border: '1px solid #374151',
-                    transition: 'all 0.2s',
-                    textAlign: 'center'
-                  }}
-                  onMouseOver={(e) => {
-                    e.currentTarget.style.background = '#374151';
-                    e.currentTarget.style.borderColor = '#667eea';
-                  }}
-                  onMouseOut={(e) => {
-                    e.currentTarget.style.background = 'var(--bg-dark)';
-                    e.currentTarget.style.borderColor = '#374151';
-                  }}
-                  title={`Click to fill in ${firstName}`}
-                >
-                  {firstName}
-                </div>
-              );
-            })}
-          </div>
-          <div style={{
-            fontSize: '0.7rem',
-            color: '#94a3b8',
-            marginTop: '12px',
-            fontStyle: 'italic'
-          }}>
-            💡 Click a name to auto-fill username
-          </div>
-        </div>
       </div>
     </div>
   );
