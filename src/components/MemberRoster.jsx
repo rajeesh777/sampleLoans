@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Users, Phone, CreditCard, CheckCircle2, AlertCircle, Zap, TrendingUp, BookOpen, X, ChevronDown, ChevronUp, Calendar, Tag } from 'lucide-react';
 import { getMemberStats, formatDateDDMMYY } from '../utils/storage';
+import ContributionLog from './ContributionLog';
 
 export default function MemberRoster({ state }) {
   const [selectedMemberForLedger, setSelectedMemberForLedger] = useState(null);
@@ -535,76 +536,29 @@ ${isAdvance ? `Note: Advance payment` : ''}`;
                   </div>
                 </div>
 
-                {/* Contributions Table */}
-                <div className="table-scroll" style={{ overflowX: 'auto' }}>
-                  <table style={{
-                    width: '100%',
-                    minWidth: '540px',
-                    borderCollapse: 'collapse',
-                    fontSize: '0.85rem'
-                  }}>
-                    <thead>
-                      <tr style={{ background: 'rgba(16, 185, 129, 0.1)', borderBottom: '2px solid #10b981' }}>
-                        <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', color: '#10b981' }}>Week</th>
-                        <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', color: '#10b981' }}>Due Date</th>
-                        <th style={{ padding: '12px', textAlign: 'center', fontWeight: '600', color: '#10b981' }}>Status</th>
-                        <th style={{ padding: '12px', textAlign: 'center', fontWeight: '600', color: '#10b981' }}>Amount</th>
-                        <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', color: '#10b981' }}>Paid Date</th>
-                        <th style={{ padding: '12px', textAlign: 'center', fontWeight: '600', color: '#10b981' }}>Method</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {(() => {
-                        let ledger = getMemberLedger(selectedMemberForLedger.id);
+                {/* Contributions log — table on wide screens, stacked rows on phones */}
+                {(() => {
+                  let ledger = getMemberLedger(selectedMemberForLedger.id);
 
-                        // Apply filter
-                        if (ledgerFilterMode === 'PAID') {
-                          ledger = ledger.filter(e => e.paid);
-                        } else if (ledgerFilterMode === 'UNPAID') {
-                          ledger = ledger.filter(e => !e.paid);
-                        }
+                  if (ledgerFilterMode === 'PAID') {
+                    ledger = ledger.filter(e => e.paid);
+                  } else if (ledgerFilterMode === 'UNPAID') {
+                    ledger = ledger.filter(e => !e.paid);
+                  }
 
-                        // Apply sort
-                        if (ledgerSortBy === 'week-asc') {
-                          ledger = ledger.sort((a, b) => a.weekNum - b.weekNum);
-                        } else if (ledgerSortBy === 'week-desc') {
-                          ledger = ledger.sort((a, b) => b.weekNum - a.weekNum);
-                        } else if (ledgerSortBy === 'status') {
-                          ledger = ledger.sort((a, b) => (b.paid ? 1 : 0) - (a.paid ? 1 : 0));
-                        } else if (ledgerSortBy === 'amount') {
-                          ledger = ledger.sort((a, b) => b.amount - a.amount);
-                        }
+                  // Copy before sorting so getMemberLedger's array is not mutated in place
+                  if (ledgerSortBy === 'week-asc') {
+                    ledger = [...ledger].sort((a, b) => a.weekNum - b.weekNum);
+                  } else if (ledgerSortBy === 'week-desc') {
+                    ledger = [...ledger].sort((a, b) => b.weekNum - a.weekNum);
+                  } else if (ledgerSortBy === 'status') {
+                    ledger = [...ledger].sort((a, b) => (b.paid ? 1 : 0) - (a.paid ? 1 : 0));
+                  } else if (ledgerSortBy === 'amount') {
+                    ledger = [...ledger].sort((a, b) => b.amount - a.amount);
+                  }
 
-                        return ledger.map((entry) => (
-                          <tr key={entry.weekNum} style={{ borderBottom: '1px solid rgba(255,255,255,0.1)', background: entry.weekNum === state.currentWeekNum ? 'rgba(16, 185, 129, 0.05)' : 'transparent' }}>
-                            <td style={{ padding: '12px', fontWeight: '600', color: '#60a5fa' }}>Week {entry.weekNum}</td>
-                            <td style={{ padding: '12px', color: '#cbd5e1' }}>{entry.displayDate}</td>
-                            <td style={{ padding: '12px', textAlign: 'center' }}>
-                              {entry.paid ? (
-                                <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', color: '#10b981' }}>
-                                  <CheckCircle2 size={14} /> Paid
-                                </span>
-                              ) : (
-                                <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', color: '#f87171' }}>
-                                  <AlertCircle size={14} /> Due
-                                </span>
-                              )}
-                            </td>
-                            <td style={{ padding: '12px', textAlign: 'center', fontWeight: '600', color: entry.paid ? '#34d399' : '#f87171' }}>
-                              ₹{entry.amount.toLocaleString('en-IN')}
-                            </td>
-                            <td style={{ padding: '12px', textAlign: 'left', color: entry.paidAt ? '#10b981' : '#6b7280', fontWeight: entry.paidAt ? '600' : 'normal' }}>
-                              {entry.paidAt || '-'}
-                            </td>
-                            <td style={{ padding: '12px', textAlign: 'center', color: '#94a3b8', fontSize: '0.8rem' }}>
-                              {entry.paymentMethod || '-'}
-                            </td>
-                          </tr>
-                        ));
-                      })()}
-                    </tbody>
-                  </table>
-                </div>
+                  return <ContributionLog entries={ledger} currentWeek={state.currentWeekNum} />;
+                })()}
               </div>
             )}
 

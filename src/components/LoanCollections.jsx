@@ -63,7 +63,7 @@ export default function LoanCollections({
               className={`week-pill ${selectedWeek === wNum ? 'active' : ''}`}
               onClick={() => setSelectedWeek(wNum)}
             >
-              Wk {wNum}
+              W{wNum}
             </button>
           ))}
         </div>

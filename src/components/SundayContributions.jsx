@@ -88,7 +88,7 @@ export default function SundayContributions({
               className={`week-pill ${selectedWeek === wNum ? 'active' : ''}`}
               onClick={() => setSelectedWeek(wNum)}
             >
-              Wk {wNum}
+              W{wNum}
             </button>
           ))}
         </div>
@@ -189,7 +189,7 @@ export default function SundayContributions({
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '10px' }}>
                     {dueWeeks.map((due) => (
                       <div key={due.weekNum} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: '#fca5a5', paddingBottom: '6px', borderBottom: '1px solid rgba(239, 68, 68, 0.3)' }}>
-                        <span>Week {due.weekNum} ({due.displayDate})</span>
+                        <span>W{due.weekNum} ({due.displayDate})</span>
                         <span style={{ fontWeight: '600' }}>₹{due.amount}</span>
                       </div>
                     ))}
@@ -335,7 +335,7 @@ export default function SundayContributions({
                     {weeksBeingPaid.map((wpay) => (
                       <div key={wpay.weekNum} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: '#fca5a5', paddingBottom: '6px', borderBottom: '1px solid rgba(239, 68, 68, 0.3)' }}>
                         <span>
-                          Week {wpay.weekNum} ({wpay.displayDate})
+                          W{wpay.weekNum} ({wpay.displayDate})
                           {!wpay.fullPayment && <span style={{ color: '#fca5a5', fontSize: '0.8rem' }}> (partial)</span>}
                         </span>
                         <span style={{ fontWeight: '600' }}>₹{wpay.amount}</span>
@@ -438,7 +438,7 @@ export default function SundayContributions({
                     const weekInfo = state.weeks[weekNum];
                     return (
                       <div key={weekNum} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px', background: 'var(--bg-dark)', borderRadius: '6px', fontSize: '0.9rem' }}>
-                        <span>Week {weekNum} ({weekInfo?.displayDate || 'N/A'})</span>
+                        <span>W{weekNum} ({weekInfo?.displayDate || 'N/A'})</span>
                         <span style={{ color: '#10b981', fontWeight: '600' }}>₹{amount}</span>
                       </div>
                     );

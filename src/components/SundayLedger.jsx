@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Tag, Calendar, CheckCircle2, AlertCircle, BookOpen, FastForward } from 'lucide-react';
+import { ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Tag, Calendar, CheckCircle2, BookOpen } from 'lucide-react';
 import { formatDateDDMMYY } from '../utils/storage';
+import ContributionLog from './ContributionLog';
 
 export default function SundayLedger({
   state,
@@ -440,83 +441,7 @@ export default function SundayLedger({
 
                         {/* Contribution Log */}
                         <div style={{ padding: '16px', background: 'var(--bg-dark)' }}>
-                        {log.length === 0 ? (
-                          <p style={{ fontSize: '0.85rem', color: '#94a3b8', textAlign: 'center', padding: '12px' }}>
-                            No contribution weeks to show yet
-                          </p>
-                        ) : (
-                          <div className="table-scroll" style={{ overflowX: 'auto' }}>
-                            <table style={{ width: '100%', minWidth: '540px', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
-                              <thead>
-                                <tr style={{ background: 'rgba(16, 185, 129, 0.1)', borderBottom: '2px solid rgba(16, 185, 129, 0.4)' }}>
-                                  <th style={{ padding: '10px', textAlign: 'left', fontWeight: '600', color: '#10b981' }}>Week</th>
-                                  <th style={{ padding: '10px', textAlign: 'left', fontWeight: '600', color: '#10b981' }}>Due Date</th>
-                                  <th style={{ padding: '10px', textAlign: 'center', fontWeight: '600', color: '#10b981' }}>Status</th>
-                                  <th style={{ padding: '10px', textAlign: 'right', fontWeight: '600', color: '#10b981' }}>Amount</th>
-                                  <th style={{ padding: '10px', textAlign: 'left', fontWeight: '600', color: '#10b981' }}>Paid Date</th>
-                                  <th style={{ padding: '10px', textAlign: 'center', fontWeight: '600', color: '#10b981' }}>Method</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {log.map((entry) => (
-                                  <tr
-                                    key={entry.weekNum}
-                                    style={{
-                                      borderBottom: '1px solid rgba(255,255,255,0.08)',
-                                      background: entry.weekNum === currentWeek ? 'rgba(96, 165, 250, 0.08)' : 'transparent'
-                                    }}
-                                  >
-                                    <td style={{ padding: '10px', fontWeight: '600', color: '#60a5fa' }}>
-                                      <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                        Week {entry.weekNum}
-                                        {entry.isAdvance && (
-                                          <span
-                                            title="Paid in advance — this week has not arrived yet"
-                                            style={{
-                                              display: 'inline-flex',
-                                              alignItems: 'center',
-                                              gap: '3px',
-                                              fontSize: '0.65rem',
-                                              fontWeight: '700',
-                                              padding: '2px 6px',
-                                              borderRadius: '999px',
-                                              background: 'rgba(96, 165, 250, 0.2)',
-                                              color: '#93c5fd',
-                                              border: '1px solid rgba(96, 165, 250, 0.4)'
-                                            }}
-                                          >
-                                            <FastForward size={10} /> ADVANCE
-                                          </span>
-                                        )}
-                                      </span>
-                                    </td>
-                                    <td style={{ padding: '10px', color: '#cbd5e1' }}>{entry.displayDate}</td>
-                                    <td style={{ padding: '10px', textAlign: 'center' }}>
-                                      {entry.paid ? (
-                                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#10b981', fontWeight: '600' }}>
-                                          <CheckCircle2 size={14} /> Paid
-                                        </span>
-                                      ) : (
-                                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#f87171', fontWeight: '600' }}>
-                                          <AlertCircle size={14} /> Due
-                                        </span>
-                                      )}
-                                    </td>
-                                    <td style={{ padding: '10px', textAlign: 'right', fontWeight: '600', color: entry.paid ? '#34d399' : '#f87171' }}>
-                                      ₹{entry.amount.toLocaleString('en-IN')}
-                                    </td>
-                                    <td style={{ padding: '10px', color: entry.paidAt ? '#10b981' : '#6b7280', fontWeight: entry.paidAt ? '600' : 'normal' }}>
-                                      {entry.paidAt ? formatDateDDMMYY(entry.paidAt) : '-'}
-                                    </td>
-                                    <td style={{ padding: '10px', textAlign: 'center', color: '#94a3b8', fontSize: '0.8rem' }}>
-                                      {entry.paid ? (entry.paymentMethod || '-') : '-'}
-                                    </td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          </div>
-                        )}
+                          <ContributionLog entries={log} currentWeek={currentWeek} />
                         </div>
                       </div>
                     </div>

@@ -115,7 +115,7 @@ export default function WeekSummary({ state, loggedInMember }) {
             >
               {weekOptions.map((w) => (
                 <option key={w.weekNum} value={w.weekNum}>
-                  Week {w.weekNum} — {w.displayDate}{w.weekNum === currentWeekNum ? ' (current)' : ''}
+                  W{w.weekNum} — {w.displayDate}{w.weekNum === currentWeekNum ? ' (current)' : ''}
                 </option>
               ))}
             </select>
