@@ -3,6 +3,7 @@ import Navbar from './components/Navbar';
 import Login from './components/Login';
 import Dashboard from './components/Dashboard';
 import SundayLedger from './components/SundayLedger';
+import DefaultersWatchdog from './components/DefaultersWatchdog';
 import SundayContributions from './components/SundayContributions';
 import LoanCollections from './components/LoanCollections';
 import AnnualSettlement from './components/AnnualSettlement';
@@ -510,6 +511,13 @@ export default function App() {
             onToggleLoanInstallment={handleToggleLoanInstallment}
             onAdvanceLoanInstallment={handleAdvanceLoanInstallment}
           />
+        )}
+
+        {/* Reached from the Dashboard dues summary and the header Overdue badge.
+            Both already pointed here, but no case rendered it, so the content
+            area came up blank. */}
+        {activeTab === 'defaulters' && (
+          <DefaultersWatchdog state={state} />
         )}
 
         {activeTab === 'settlement' && (
