@@ -47,7 +47,10 @@ body {
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   line-height: 1.5;
   min-height: 100vh;
-  overflow-x: hidden;
+  /* clip, not hidden: overflow-x: hidden makes body a scroll container, which
+     stops position: sticky working for descendants (the Fund Book header). clip
+     still prevents sideways scrolling but creates no scrollport. */
+  overflow-x: clip;
 }
 
 h1, h2, h3, h4, h5, h6 {
@@ -845,5 +848,50 @@ h1, h2, h3, h4, h5, h6 {
 
   .mobile-nav-btn {
     padding: 10px 2px;
+  }
+}
+
+/* Fund Book header — one heading plus a segmented control, sticking to the top
+   so you can switch sections without scrolling back up a long list. z-index sits
+   below the modal overlay (200) and the bottom nav (100). */
+.fund-book-header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: var(--bg-dark);
+  border-bottom: 1px solid var(--border-color);
+  padding: 12px 0 10px;
+  margin-bottom: 14px;
+}
+
+.segmented {
+  display: flex;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  padding: 4px;
+}
+
+.segmented-btn {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 40px;
+  padding: 8px 10px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (max-width: 480px) {
+  .segmented-btn {
+    font-size: 0.78rem;
+    padding: 8px 6px;
   }
 }

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Tag, Calendar, CheckCircle2, BookOpen } from 'lucide-react';
+import { ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Calendar, CheckCircle2, BookOpen } from 'lucide-react';
 import { formatDateDDMMYY } from '../utils/storage';
 import ContributionLog from './ContributionLog';
 
@@ -122,33 +122,31 @@ export default function SundayLedger({
 
   return (
     <div className="sunday-ledger-container" style={{ padding: '16px' }}>
-      {/* Fund Book Header */}
-      <div className="card" style={{ marginBottom: '20px', padding: '16px' }}>
-        <h1 style={{ fontSize: '1.5rem', fontWeight: '800', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <BookOpen size={24} color="#60a5fa" /> Fund Book
-        </h1>
-        <p style={{ fontSize: '0.9rem', color: '#94a3b8' }}>
-          All group transactions, split into loan repayments and weekly contributions
-        </p>
+      {/* One header for the whole page. The per-section title cards that used to
+          sit below this repeated the tab name, so the page showed three headings
+          before any data. The control sticks to the top while long lists scroll. */}
+      <div className="fund-book-header">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+          <BookOpen size={20} color="#60a5fa" />
+          <h1 style={{ fontSize: '1.15rem', fontWeight: '800', margin: 0 }}>Fund Book</h1>
+        </div>
 
-        {/* Section Tabs */}
-        <div style={{ display: 'flex', gap: '8px', marginTop: '16px', borderBottom: '2px solid rgba(255,255,255,0.1)' }}>
+        {/* Segmented control. Deliberately plain buttons with aria-pressed rather
+            than role="tab": real tab semantics need aria-controls pointing at a
+            role="tabpanel", and half-declared tabs mislead screen readers. */}
+        <div className="segmented">
           {sectionTabs.map(tab => {
             const isActive = section === tab.key;
             return (
               <button
                 key={tab.key}
+                aria-pressed={isActive}
                 onClick={() => setSection(tab.key)}
+                className="segmented-btn"
                 style={{
-                  padding: '12px 16px',
-                  fontSize: '0.9rem',
-                  fontWeight: '600',
                   background: isActive ? `${tab.color}22` : 'transparent',
-                  border: 'none',
-                  borderBottom: `3px solid ${isActive ? tab.color : 'transparent'}`,
-                  color: isActive ? tab.color : '#94a3b8',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s'
+                  borderColor: isActive ? tab.color : 'transparent',
+                  color: isActive ? tab.color : '#94a3b8'
                 }}
               >
                 {tab.label}
@@ -156,20 +154,17 @@ export default function SundayLedger({
             );
           })}
         </div>
+
+        <p style={{ fontSize: '0.78rem', color: '#94a3b8', margin: '8px 0 0' }}>
+          {section === 'loans'
+            ? 'Loan repayments per member · up to 10 weeks per loan'
+            : `W1–W${currentWeek} · later weeks appear once paid ahead`}
+        </p>
       </div>
 
       {/* ============ LOAN BOOK ============ */}
       {section === 'loans' && (
         <div>
-          <div className="card" style={{ marginBottom: '16px', padding: '16px' }}>
-            <h2 style={{ fontSize: '1.2rem', fontWeight: '800', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <Tag size={20} color="#fbbf24" /> Loan Book
-            </h2>
-            <p style={{ fontSize: '0.85rem', color: '#94a3b8' }}>
-              Track loan repayments for each member • Max 10 weeks shown per loan
-            </p>
-          </div>
-
           {allLoans.length === 0 ? (
             <div className="card" style={{ textAlign: 'center', padding: '40px 16px', color: '#94a3b8' }}>
               <p style={{ fontSize: '1rem' }}>📭 No loans recorded yet</p>
@@ -299,15 +294,6 @@ export default function SundayLedger({
       {/* ============ CONTRIBUTION BOOK ============ */}
       {section === 'contributions' && (
         <div>
-          <div className="card" style={{ marginBottom: '16px', padding: '16px' }}>
-            <h2 style={{ fontSize: '1.2rem', fontWeight: '800', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <BookOpen size={20} color="#10b981" /> Contribution Book
-            </h2>
-            <p style={{ fontSize: '0.85rem', color: '#94a3b8' }}>
-              One member at a time • swipe the card or use ← → arrows to move between people • weeks 1–{currentWeek} shown, later weeks appear only once paid in advance
-            </p>
-          </div>
-
           {members.length === 0 ? (
             <div className="card" style={{ textAlign: 'center', padding: '40px 16px', color: '#94a3b8' }}>
               <p style={{ fontSize: '1rem' }}>📭 No members yet</p>
@@ -321,17 +307,17 @@ export default function SundayLedger({
               const advanceCount = log.filter(e => e.isAdvance).length;
               const totalPaid = paidEntries.reduce((sum, e) => sum + e.amount, 0);
 
+              // 44px minimum so the arrows are comfortable thumb targets
               const navBtnStyle = {
                 display: 'flex',
                 alignItems: 'center',
-                gap: '4px',
-                padding: '8px 12px',
+                justifyContent: 'center',
+                minWidth: '44px',
+                minHeight: '44px',
                 borderRadius: '8px',
                 border: '1px solid rgba(16, 185, 129, 0.4)',
                 background: 'rgba(16, 185, 129, 0.12)',
                 color: '#10b981',
-                fontSize: '0.85rem',
-                fontWeight: '600',
                 cursor: members.length > 1 ? 'pointer' : 'not-allowed',
                 opacity: members.length > 1 ? 1 : 0.4,
                 transition: 'all 0.2s'
@@ -339,25 +325,37 @@ export default function SundayLedger({
 
               return (
                 <div>
-                  {/* Deck navigation */}
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', marginBottom: '14px', flexWrap: 'wrap' }}>
+                  {/* Deck navigation. The member name is a picker, replacing a row of
+                      nine 9px dots that were well under a usable touch target and
+                      would have kept growing with the roster. */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
                     <button
                       onClick={goPrevMember}
                       disabled={members.length < 2}
                       aria-label="Previous member"
                       style={navBtnStyle}
                     >
-                      <ChevronLeft size={16} /> Prev
+                      <ChevronLeft size={18} />
                     </button>
 
-                    <div style={{ textAlign: 'center', flex: 1, minWidth: '140px' }}>
-                      <div style={{ fontSize: '0.95rem', fontWeight: '700', color: '#e5e7eb' }}>
-                        {member.name}
-                      </div>
-                      <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '2px' }}>
-                        Card {activeMemberIndex + 1} of {members.length}
-                      </div>
-                    </div>
+                    <select
+                      aria-label="Select member"
+                      value={activeMemberIndex}
+                      onChange={(e) => goToMember(Number(e.target.value), Number(e.target.value) > activeMemberIndex ? 'right' : 'left')}
+                      style={{
+                        flex: 1, minWidth: 0, minHeight: '44px',
+                        background: 'var(--bg-dark)', border: '1px solid #374151',
+                        borderRadius: '8px', padding: '0 10px', color: '#e5e7eb',
+                        fontSize: '0.92rem', fontWeight: '700', cursor: 'pointer',
+                        textAlign: 'center'
+                      }}
+                    >
+                      {members.map((m, idx) => (
+                        <option key={m.id} value={idx}>
+                          {m.name} ({idx + 1}/{members.length})
+                        </option>
+                      ))}
+                    </select>
 
                     <button
                       onClick={goNextMember}
@@ -365,7 +363,7 @@ export default function SundayLedger({
                       aria-label="Next member"
                       style={navBtnStyle}
                     >
-                      Next <ChevronRight size={16} />
+                      <ChevronRight size={18} />
                     </button>
                   </div>
 
@@ -446,33 +444,6 @@ export default function SundayLedger({
                       </div>
                     </div>
                   </div>
-
-                  {/* Deck position dots */}
-                  {members.length > 1 && (
-                    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', marginTop: '22px', flexWrap: 'wrap' }}>
-                      {members.map((m, idx) => {
-                        const isActive = idx === activeMemberIndex;
-                        return (
-                          <button
-                            key={m.id}
-                            onClick={() => goToMember(idx, idx > activeMemberIndex ? 'right' : 'left')}
-                            title={m.name}
-                            aria-label={`Show ${m.name}`}
-                            style={{
-                              width: isActive ? '26px' : '9px',
-                              height: '9px',
-                              padding: 0,
-                              borderRadius: '999px',
-                              border: 'none',
-                              cursor: 'pointer',
-                              background: isActive ? '#10b981' : 'rgba(148, 163, 184, 0.4)',
-                              transition: 'all 0.2s'
-                            }}
-                          />
-                        );
-                      })}
-                    </div>
-                  )}
                 </div>
               );
             })()
