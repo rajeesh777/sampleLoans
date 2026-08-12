@@ -30,7 +30,7 @@ export default function SundayContributions({
     const cleanPhone = member.phone ? member.phone.replace(/[^0-9]/g, '') : '';
     let msg = `Hi ${member.name}! 👋\nSunday Contribution Reminder for *${state.groupName || 'Isthooi Savings Group'}* (Week ${selectedWeek}):\n`;
     msg += `• Regular Contribution: ₹${regularAmount}\n`;
-    msg += `👉 *Due Today: ₹${regularAmount}*\n`;
+    msg += `*Due Today: ₹${regularAmount}*\n`;
     if (unpaidWeeksCount > 1) {
       msg += `⚠️ Note: You have ${unpaidWeeksCount} unpaid weeks. Please clear dues to avoid exceeding 3-week limit!\n`;
     }
@@ -99,8 +99,8 @@ export default function SundayContributions({
         className="card"
         style={{
           background: weekData.ceased
-            ? 'linear-gradient(135deg, #1f2937 0%, #111827 100%)'
-            : 'linear-gradient(135deg, #131b2e 0%, #1c2742 100%)',
+            ? 'var(--bg-card)'
+            : 'var(--bg-card)',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
@@ -173,7 +173,7 @@ export default function SundayContributions({
                     {member.name}
                     {mStats.status === 'PENDING_1' && <span className="status-badge pending_1">1 Wk Pending</span>}
                     {mStats.status === 'OVERDUE_2' && <span className="status-badge overdue_2">2 Wks Overdue</span>}
-                    {mStats.status === 'CRITICAL_3' && <span className="status-badge critical_3">🚨 3 Wks Max Limit</span>}
+                    {mStats.status === 'CRITICAL_3' && <span className="status-badge critical_3">3 Wks Max Limit</span>}
                     {mStats.status === 'BLOCKED' && <span className="status-badge blocked">⛔ BLOCKED DEFAULTER</span>}
                   </div>
                   <div className="member-phone">{member.phone} • UPI: {member.upiId}</div>

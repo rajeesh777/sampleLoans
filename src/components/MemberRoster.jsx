@@ -117,7 +117,7 @@ export default function MemberRoster({ state }) {
       <div
         className="card"
         style={{
-          background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+          background: 'rgba(16, 185, 129, 0.12)',
           marginBottom: '20px'
         }}
       >
@@ -194,7 +194,7 @@ export default function MemberRoster({ state }) {
                     {mStats.status === 'CLEAN' && <span className="status-badge clean">✓ Good Standing</span>}
                     {mStats.status === 'PENDING_1' && <span className="status-badge pending_1">⚠️ 1 Wk Pending</span>}
                     {mStats.status === 'OVERDUE_2' && <span className="status-badge overdue_2">⚠️ 2 Wks Overdue</span>}
-                    {mStats.status === 'CRITICAL_3' && <span className="status-badge critical_3">🚨 3 Wks Critical</span>}
+                    {mStats.status === 'CRITICAL_3' && <span className="status-badge critical_3">3 Wks Critical</span>}
                     {mStats.status === 'BLOCKED' && <span className="status-badge blocked">⛔ BLOCKED</span>}
                   </div>
                 </div>
@@ -462,7 +462,7 @@ ${isAdvance ? `Note: Advance payment` : ''}`;
                   transition: 'all 0.2s'
                 }}
               >
-                📊 Contributions
+                Contributions
               </button>
               <button
                 onClick={() => {
@@ -483,7 +483,7 @@ ${isAdvance ? `Note: Advance payment` : ''}`;
                   transition: 'all 0.2s'
                 }}
               >
-                💰 Loans
+                Loans
               </button>
             </div>
 
@@ -584,7 +584,7 @@ ${isAdvance ? `Note: Advance payment` : ''}`;
 
                   return memberLoans.length === 0 ? (
                     <div style={{ textAlign: 'center', padding: '40px 16px', color: '#94a3b8' }}>
-                      <p style={{ fontSize: '1rem' }}>📭 No loans for this member</p>
+                      <p style={{ fontSize: '1rem' }}>No loans for this member</p>
                     </div>
                   ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -622,8 +622,8 @@ ${isAdvance ? `Note: Advance payment` : ''}`;
                         <div style={{ textAlign: 'center', padding: '32px 16px', color: '#94a3b8' }}>
                           <p style={{ fontSize: '0.95rem' }}>
                             {ledgerLoanStatusFilter === 'CLOSED'
-                              ? '📭 No closed loans for this member yet'
-                              : '📭 No active loans for this member'}
+                              ? 'No closed loans for this member yet'
+                              : 'No active loans for this member'}
                           </p>
                         </div>
                       )}
@@ -646,8 +646,8 @@ ${isAdvance ? `Note: Advance payment` : ''}`;
                                 padding: '16px',
                                 cursor: 'pointer',
                                 background: isClosed
-                                  ? 'linear-gradient(135deg, rgba(107, 114, 128, 0.12) 0%, rgba(75, 85, 99, 0.05) 100%)'
-                                  : 'linear-gradient(135deg, rgba(251, 191, 36, 0.1) 0%, rgba(245, 158, 11, 0.05) 100%)',
+                                  ? 'rgba(107, 114, 128, 0.1)'
+                                  : 'rgba(251, 191, 36, 0.08)',
                                 borderBottom: isExpanded ? `1px solid ${isClosed ? 'rgba(107, 114, 128, 0.3)' : 'rgba(251, 191, 36, 0.2)'}` : 'none'
                               }}
                             >

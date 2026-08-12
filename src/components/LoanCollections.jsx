@@ -74,8 +74,8 @@ export default function LoanCollections({
         className="card"
         style={{
           background: weekData.ceased
-            ? 'linear-gradient(135deg, #1f2937 0%, #111827 100%)'
-            : 'linear-gradient(135deg, #7c2d12 0%, #92400e 100%)',
+            ? 'var(--bg-card)'
+            : 'rgba(245, 158, 11, 0.12)',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
@@ -113,7 +113,7 @@ export default function LoanCollections({
               cursor: 'pointer'
             }}
           >
-            {viewMode === 'active' ? '📋 View Closed Loans' : '⏳ View Active Loans'}
+            {viewMode === 'active' ? 'View Closed Loans' : '⏳ View Active Loans'}
           </button>
 
           {viewMode === 'active' && (
@@ -144,7 +144,7 @@ export default function LoanCollections({
                 onClick={() => setLoanRequestModal(true)}
                 disabled={editLocked}
               >
-                ➕ Request New Loan
+                Request New Loan
               </button>
             </>
           )}
@@ -212,7 +212,7 @@ export default function LoanCollections({
                           <Tag size={10} color="#fbbf24" /> Repayment Status
                         </span>
                         <span className="due-item-val" style={{ color: remainingBalance === 0 ? '#10b981' : isUrgent ? '#ef4444' : '#f59e0b' }}>
-                          {remainingBalance === 0 ? '✓ CLOSED' : isUrgent ? `🚨 ${weeksRemaining} WK${weeksRemaining !== 1 ? 'S' : ''} LEFT` : `₹${remainingBalance.toLocaleString('en-IN')} DUE`}
+                          {remainingBalance === 0 ? '✓ CLOSED' : isUrgent ? `${weeksRemaining} WK${weeksRemaining !== 1 ? 'S' : ''} LEFT` : `₹${remainingBalance.toLocaleString('en-IN')} DUE`}
                         </span>
                       </div>
                     </div>
@@ -402,7 +402,7 @@ export default function LoanCollections({
                     )}
                     {loanPaymentAmount > remainingBalance && (
                       <div style={{ marginTop: '8px', fontSize: '0.85rem', color: '#fbbf24' }}>
-                        💡 Amount exceeds remaining balance
+                        Amount exceeds remaining balance
                       </div>
                     )}
                   </>

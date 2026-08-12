@@ -189,7 +189,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .nav-item.active {
-  background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(99, 102, 241, 0.2));
+  background: rgba(16, 185, 129, 0.18);
   border-color: var(--primary);
   color: #ffffff;
   box-shadow: 0 4px 15px rgba(16, 185, 129, 0.15);
@@ -289,7 +289,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .metric-card {
-  background: linear-gradient(145deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.01));
+  background: rgba(255, 255, 255, 0.02);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
   padding: 16px;
@@ -363,7 +363,7 @@ h1, h2, h3, h4, h5, h6 {
 
 .member-card.paid {
   border-color: rgba(16, 185, 129, 0.3);
-  background: linear-gradient(135deg, rgba(16, 185, 129, 0.05), var(--bg-card));
+  background: var(--bg-card);
 }
 
 .member-card.overdue {
@@ -372,7 +372,7 @@ h1, h2, h3, h4, h5, h6 {
 
 .member-card.blocked {
   border-color: rgba(244, 63, 94, 0.5);
-  background: linear-gradient(135deg, rgba(244, 63, 94, 0.06), var(--bg-card));
+  background: var(--bg-card);
 }
 
 .member-info {
@@ -464,7 +464,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, var(--primary), var(--primary-hover));
+  background: var(--primary);
   color: #ffffff;
   box-shadow: 0 4px 15px var(--primary-glow);
 }
@@ -484,13 +484,13 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .btn-gold {
-  background: linear-gradient(135deg, var(--gold), #d97706);
+  background: var(--gold);
   color: #ffffff;
   box-shadow: 0 4px 15px var(--gold-glow);
 }
 
 .btn-rose {
-  background: linear-gradient(135deg, var(--rose), #e11d48);
+  background: var(--rose);
   color: #ffffff;
   box-shadow: 0 4px 15px var(--rose-glow);
 }

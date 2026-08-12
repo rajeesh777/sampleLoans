@@ -312,7 +312,7 @@ export default function WeekSummary({ state, loggedInMember }) {
 
           {/* ---- 4. Calculations ---- */}
           <div style={{
-            background: 'linear-gradient(135deg, rgba(96, 165, 250, 0.12) 0%, rgba(30, 41, 59, 0.6) 100%)',
+            background: 'rgba(96, 165, 250, 0.1)',
             border: '1px solid rgba(96, 165, 250, 0.35)', borderRadius: '8px', padding: '14px'
           }}>
             {sectionTitle(Calculator, '#60a5fa', '4. Calculations')}

@@ -63,7 +63,7 @@ export default function LoanManager({ state, groupStats, onCreateLoan, onRepayLo
       <div
         className="card"
         style={{
-          background: 'linear-gradient(135deg, #131b2e 0%, #1c2742 100%)',
+          background: 'var(--bg-card)',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
@@ -278,7 +278,7 @@ export default function LoanManager({ state, groupStats, onCreateLoan, onRepayLo
                   <span style={{ color: '#f43f5e', fontWeight: '700' }}>- ₹{upfrontFee.toLocaleString('en-IN')}</span>
                 </div>
                 <div className="calc-row total">
-                  <span>👉 Net Disbursed Cash (90%):</span>
+                  <span>Net Disbursed Cash (90%):</span>
                   <span>₹{disbursedCash.toLocaleString('en-IN')}</span>
                 </div>
                 <div className="calc-row" style={{ marginTop: '8px', fontSize: '0.8rem', color: '#94a3b8' }}>

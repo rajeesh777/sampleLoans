@@ -116,8 +116,8 @@ export default function SundayLedger({
   };
 
   const sectionTabs = [
-    { key: 'loans', label: '💰 Loan Book', color: '#fbbf24' },
-    { key: 'contributions', label: '📗 Contribution Book', color: '#10b981' }
+    { key: 'loans', label: 'Loan Book', color: '#fbbf24' },
+    { key: 'contributions', label: 'Contribution Book', color: '#10b981' }
   ];
 
   return (
@@ -167,7 +167,7 @@ export default function SundayLedger({
         <div>
           {allLoans.length === 0 ? (
             <div className="card" style={{ textAlign: 'center', padding: '40px 16px', color: '#94a3b8' }}>
-              <p style={{ fontSize: '1rem' }}>📭 No loans recorded yet</p>
+              <p style={{ fontSize: '1rem' }}>No loans recorded yet</p>
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -188,7 +188,7 @@ export default function SundayLedger({
                         alignItems: 'center',
                         padding: '16px',
                         cursor: 'pointer',
-                        background: 'linear-gradient(135deg, rgba(251, 191, 36, 0.1) 0%, rgba(245, 158, 11, 0.05) 100%)',
+                        background: 'rgba(251, 191, 36, 0.08)',
                         borderBottom: isExpanded ? '1px solid rgba(251, 191, 36, 0.2)' : 'none'
                       }}
                     >
@@ -296,7 +296,7 @@ export default function SundayLedger({
         <div>
           {members.length === 0 ? (
             <div className="card" style={{ textAlign: 'center', padding: '40px 16px', color: '#94a3b8' }}>
-              <p style={{ fontSize: '1rem' }}>📭 No members yet</p>
+              <p style={{ fontSize: '1rem' }}>No members yet</p>
             </div>
           ) : (
             (() => {
@@ -406,7 +406,7 @@ export default function SundayLedger({
                             gap: '12px',
                             padding: '16px',
                             flexWrap: 'wrap',
-                            background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(5, 150, 105, 0.05) 100%)',
+                            background: 'rgba(16, 185, 129, 0.08)',
                             borderBottom: '1px solid rgba(16, 185, 129, 0.2)'
                           }}
                         >

@@ -44,14 +44,14 @@ export default function Dashboard({ state, groupStats, setActiveTab, onTogglePay
       <div
         className="card"
         style={{
-          background: 'linear-gradient(135deg, #131b2e 0%, #1e293b 100%)',
+          background: 'var(--bg-card)',
           border: '1px solid rgba(16, 185, 129, 0.4)'
         }}
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px' }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-              <span className="status-badge clean">⚡ 8:00 PM Collection Mode</span>
+              <span className="status-badge clean">8:00 PM Collection Mode</span>
               <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>
                 {currentWeekData.displayDate || `Sunday (Week ${currentWeekNum})`}
               </span>
@@ -89,7 +89,7 @@ export default function Dashboard({ state, groupStats, setActiveTab, onTogglePay
         <div
           className="card"
           style={{
-            background: 'linear-gradient(135deg, rgba(244, 63, 94, 0.15), #131b2e)',
+            background: 'rgba(244, 63, 94, 0.12)',
             border: '1px solid #f43f5e'
           }}
         >

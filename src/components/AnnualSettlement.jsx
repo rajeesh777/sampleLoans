@@ -40,7 +40,7 @@ export default function AnnualSettlement({ state, groupStats }) {
       <div
         className="card"
         style={{
-          background: 'linear-gradient(135deg, #1e1b4b 0%, #131b2e 100%)',
+          background: 'var(--bg-card)',
           border: '1px solid rgba(245, 158, 11, 0.4)'
         }}
       >

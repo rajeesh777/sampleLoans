@@ -178,7 +178,7 @@ export default function Settings({ state, onUpdateSettings, onCeaseWeek, onToggl
       <div
         className="card"
         style={{
-          background: 'linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)',
+          background: 'rgba(124, 58, 237, 0.14)',
           marginBottom: '20px'
         }}
       >
@@ -556,8 +556,8 @@ export default function Settings({ state, onUpdateSettings, onCeaseWeek, onToggl
                     </div>
 
                     <div style={{ fontSize: '0.85rem', color: '#94a3b8' }}>
-                      <div>📱 {member.phone}</div>
-                      <div>💳 {member.upiId}</div>
+                      <div>{member.phone}</div>
+                      <div>{member.upiId}</div>
                     </div>
 
                     <div style={{ display: 'flex', gap: '8px' }}>
@@ -616,7 +616,7 @@ export default function Settings({ state, onUpdateSettings, onCeaseWeek, onToggl
           <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '450px' }}>
             <div className="modal-header">
               <h3 style={{ fontSize: '1.25rem', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                {editingMemberId ? '✏️ Edit Member' : '➕ Add New Member'}
+                {editingMemberId ? '✏️ Edit Member' : 'Add New Member'}
               </h3>
               <button className="modal-close" onClick={() => setShowMemberModal(false)}>×</button>
             </div>
@@ -690,7 +690,7 @@ export default function Settings({ state, onUpdateSettings, onCeaseWeek, onToggl
                 onClick={handleSaveMember}
                 style={{ background: '#7c3aed' }}
               >
-                {editingMemberId ? '✓ Update Member' : '➕ Add Member'}
+                {editingMemberId ? '✓ Update Member' : 'Add Member'}
               </button>
             </div>
           </div>
@@ -711,7 +711,7 @@ export default function Settings({ state, onUpdateSettings, onCeaseWeek, onToggl
           onClick={handleSaveSettings}
           style={{ background: '#7c3aed' }}
         >
-          💾 Save Settings
+          Save Settings
         </button>
       </div>
 
@@ -737,7 +737,7 @@ export default function Settings({ state, onUpdateSettings, onCeaseWeek, onToggl
             padding: '16px'
           }}>
             <h4 style={{ fontSize: '0.95rem', fontWeight: '700', marginBottom: '8px', color: '#86efac' }}>
-              📥 Export Backup
+              Export Backup
             </h4>
             <p style={{ fontSize: '0.825rem', color: '#94a3b8', marginBottom: '12px' }}>
               Download all your group data as a JSON file. Keep regular backups for safety.
@@ -767,7 +767,7 @@ export default function Settings({ state, onUpdateSettings, onCeaseWeek, onToggl
             padding: '16px'
           }}>
             <h4 style={{ fontSize: '0.95rem', fontWeight: '700', marginBottom: '8px', color: '#86efac' }}>
-              📤 Import Backup
+              Import Backup
             </h4>
             <p style={{ fontSize: '0.825rem', color: '#94a3b8', marginBottom: '12px' }}>
               Restore data from a previously exported JSON backup file.
@@ -811,7 +811,7 @@ export default function Settings({ state, onUpdateSettings, onCeaseWeek, onToggl
         {/* Reset to Demo Data */}
         <div style={{ marginTop: '16px' }}>
           <h4 style={{ fontSize: '0.95rem', fontWeight: '700', marginBottom: '8px', color: '#fca5a5' }}>
-            🔄 Reset to Demo Data
+            Reset to Demo Data
           </h4>
           <p style={{ fontSize: '0.825rem', color: '#94a3b8', marginBottom: '12px' }}>
             Reload the application with fresh demo data. All current data will be lost.

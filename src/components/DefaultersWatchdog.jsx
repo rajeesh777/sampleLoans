@@ -23,7 +23,7 @@ export default function DefaultersWatchdog({ state }) {
     const cleanPhone = member.phone ? member.phone.replace(/[^0-9]/g, '') : '';
     const totalDue = stats.unpaidPastWeeks * (state.weeklyAmount || 1000) + stats.totalLoanLiability;
 
-    let msg = `🚨 *URGENT PAYMENT ALERT — ${state.groupName || 'Sunday Savings Group'}*\n\n`;
+    let msg = `*URGENT PAYMENT ALERT — ${state.groupName || 'Sunday Savings Group'}*\n\n`;
     msg += `Hi ${member.name},\n`;
     msg += `You have *${stats.unpaidPastWeeks} unpaid Sunday contribution(s)* (Weeks: ${stats.missedWeeksList.join(', ')}).\n`;
 
@@ -31,7 +31,7 @@ export default function DefaultersWatchdog({ state }) {
       msg += `⚠️ *CRITICAL:* You have reached/exceeded the maximum 3-week unpaid limit. Your loan privileges are currently locked until dues are cleared!\n`;
     }
 
-    msg += `\n👉 *Total Outstanding Dues: ₹${totalDue.toLocaleString('en-IN')}*\n`;
+    msg += `\n*Total Outstanding Dues: ₹${totalDue.toLocaleString('en-IN')}*\n`;
     msg += `Please pay via UPI to *${state.groupUpiVpa || 'sundayfund@upi'}* immediately. Thank you!`;
 
     const encodedMsg = encodeURIComponent(msg);
@@ -45,7 +45,7 @@ export default function DefaultersWatchdog({ state }) {
       <div
         className="card"
         style={{
-          background: 'linear-gradient(135deg, #131b2e 0%, #1c2742 100%)',
+          background: 'var(--bg-card)',
           border: '1px solid rgba(244, 63, 94, 0.4)'
         }}
       >
@@ -117,7 +117,7 @@ export default function DefaultersWatchdog({ state }) {
                         {member.name}
                         {stats.status === 'PENDING_1' && <span className="status-badge pending_1">1 Wk Pending</span>}
                         {stats.status === 'OVERDUE_2' && <span className="status-badge overdue_2">2 Wks Overdue</span>}
-                        {stats.status === 'CRITICAL_3' && <span className="status-badge critical_3">🚨 3 Wks Max Limit</span>}
+                        {stats.status === 'CRITICAL_3' && <span className="status-badge critical_3">3 Wks Max Limit</span>}
                         {stats.status === 'BLOCKED' && <span className="status-badge blocked">⛔ BLOCKED DEFAULTER</span>}
                       </div>
                       <div className="member-phone">{member.phone} • UPI: {member.upiId}</div>
