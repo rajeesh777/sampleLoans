@@ -126,7 +126,7 @@ export default function Login({ members, onLogin }) {
               onFocus={() => setError('')}
             />
             <div style={{
-              fontSize: '0.75rem',
+              fontSize: '0.8rem',
               color: '#94a3b8',
               marginTop: '6px'
             }}>

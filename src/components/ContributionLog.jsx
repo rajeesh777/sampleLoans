@@ -29,7 +29,7 @@ const advanceBadge = (
     title="Paid in advance — this week has not arrived yet"
     style={{
       display: 'inline-flex', alignItems: 'center', gap: '3px',
-      fontSize: '0.65rem', fontWeight: '700', padding: '2px 6px',
+      fontSize: '0.8rem', fontWeight: '700', padding: '2px 6px',
       borderRadius: '999px', background: 'rgba(96, 165, 250, 0.2)',
       color: '#93c5fd', border: '1px solid rgba(96, 165, 250, 0.4)'
     }}
@@ -80,7 +80,7 @@ export default function ContributionLog({ entries, currentWeek }) {
                 </strong>
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginTop: '6px', fontSize: '0.78rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginTop: '6px', fontSize: '0.8rem' }}>
                 {entry.paid ? (
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#10b981', fontWeight: '600' }}>
                     <CheckCircle2 size={13} /> Paid

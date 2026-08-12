@@ -64,19 +64,19 @@ export default function DefaultersWatchdog({ state }) {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '10px', marginTop: '16px' }}>
           <div style={{ background: 'rgba(255,255,255,0.03)', padding: '10px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
             <span className="status-badge pending_1">1 Wk Pending</span>
-            <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '4px' }}>Standard Reminder</div>
+            <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '4px' }}>Standard Reminder</div>
           </div>
           <div style={{ background: 'rgba(255,255,255,0.03)', padding: '10px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
             <span className="status-badge overdue_2">2 Wks Overdue</span>
-            <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '4px' }}>Warning Notice</div>
+            <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '4px' }}>Warning Notice</div>
           </div>
           <div style={{ background: 'rgba(255,255,255,0.03)', padding: '10px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
             <span className="status-badge critical_3">3 Wks Critical</span>
-            <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '4px' }}>Max Limit Reached</div>
+            <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '4px' }}>Max Limit Reached</div>
           </div>
           <div style={{ background: 'rgba(255,255,255,0.03)', padding: '10px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
             <span className="status-badge blocked">⛔ BLOCKED (&gt;3 Wks)</span>
-            <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '4px' }}>Loans Locked</div>
+            <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '4px' }}>Loans Locked</div>
           </div>
         </div>
       </div>

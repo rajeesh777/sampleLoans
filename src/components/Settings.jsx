@@ -549,7 +549,7 @@ export default function Settings({ state, onUpdateSettings, onCeaseWeek, onToggl
                         <div style={{ fontWeight: '600', color: '#ffffff' }}>
                           {member.name}
                         </div>
-                        <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+                        <div style={{ fontSize: '0.8rem', color: '#94a3b8' }}>
                           Username: <code style={{ background: 'rgba(255,255,255,0.1)', padding: '2px 4px' }}>{firstName}</code>
                         </div>
                       </div>
@@ -630,7 +630,7 @@ export default function Settings({ state, onUpdateSettings, onCeaseWeek, onToggl
                 onChange={(e) => setMemberForm({ ...memberForm, name: e.target.value })}
                 placeholder="e.g., Rajeesh"
               />
-              <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '4px' }}>
+              <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '4px' }}>
                 First name will be used as login username
               </div>
             </div>

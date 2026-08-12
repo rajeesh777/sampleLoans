@@ -168,7 +168,7 @@ export default function MemberRoster({ state }) {
                   <h4 style={{ fontWeight: '700', fontSize: '1.05rem', color: '#ffffff' }}>
                     {member.name}
                   </h4>
-                  <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+                  <div style={{ fontSize: '0.8rem', color: '#94a3b8' }}>
                     Username: <code style={{ background: 'rgba(255,255,255,0.1)', padding: '2px 6px', borderRadius: '3px' }}>
                       {member.name.split(' ')[0]}
                     </code>
@@ -189,7 +189,7 @@ export default function MemberRoster({ state }) {
               {/* Status & Quick Stats */}
               <div style={{ background: 'rgba(0,0,0,0.2)', borderRadius: '8px', padding: '12px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                  <span style={{ fontSize: '0.75rem', fontWeight: '600', color: '#94a3b8', textTransform: 'uppercase' }}>Status</span>
+                  <span style={{ fontSize: '0.8rem', fontWeight: '600', color: '#94a3b8', textTransform: 'uppercase' }}>Status</span>
                   <div>
                     {mStats.status === 'CLEAN' && <span className="status-badge clean">✓ Good Standing</span>}
                     {mStats.status === 'PENDING_1' && <span className="status-badge pending_1">⚠️ 1 Wk Pending</span>}
@@ -217,7 +217,7 @@ export default function MemberRoster({ state }) {
 
               {/* Current Week Status */}
               <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '12px' }}>
-                <div style={{ fontSize: '0.75rem', fontWeight: '600', color: '#94a3b8', textTransform: 'uppercase', marginBottom: '8px' }}>
+                <div style={{ fontSize: '0.8rem', fontWeight: '600', color: '#94a3b8', textTransform: 'uppercase', marginBottom: '8px' }}>
                   This Week (Week {state.currentWeekNum})
                 </div>
 
@@ -263,7 +263,7 @@ export default function MemberRoster({ state }) {
               {/* Active Loans */}
               {activeLoans.length > 0 && (
                 <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '12px' }}>
-                  <div style={{ fontSize: '0.75rem', fontWeight: '600', color: '#f59e0b', textTransform: 'uppercase', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <div style={{ fontSize: '0.8rem', fontWeight: '600', color: '#f59e0b', textTransform: 'uppercase', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <Zap size={13} /> Active Loans ({activeLoans.length})
                   </div>
                   {activeLoans.map((loan) => {
@@ -275,7 +275,7 @@ export default function MemberRoster({ state }) {
                           <span style={{ fontWeight: '600', color: '#fbbf24' }}>{loan.nickname}</span>
                           <span style={{ color: '#f59e0b' }}>{progress}%</span>
                         </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: '#94a3b8' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: '#94a3b8' }}>
                           <span>Repaid: ₹{loan.repaidAmount.toLocaleString('en-IN')}</span>
                           <span>Remaining: ₹{remaining.toLocaleString('en-IN')}</span>
                         </div>
@@ -290,7 +290,7 @@ export default function MemberRoster({ state }) {
 
               {/* Recent Payment History */}
               <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '12px' }}>
-                <div style={{ fontSize: '0.75rem', fontWeight: '600', color: '#94a3b8', textTransform: 'uppercase', marginBottom: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ fontSize: '0.8rem', fontWeight: '600', color: '#94a3b8', textTransform: 'uppercase', marginBottom: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <TrendingUp size={13} /> Recent Payment History (Last 8 Weeks)
                   </div>
@@ -302,7 +302,7 @@ export default function MemberRoster({ state }) {
                       border: 'none',
                       borderRadius: '4px',
                       padding: '4px 8px',
-                      fontSize: '0.65rem',
+                      fontSize: '0.8rem',
                       fontWeight: '600',
                       cursor: 'pointer',
                       display: 'flex',
@@ -344,7 +344,7 @@ ${isAdvance ? `Note: Advance payment` : ''}`;
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          fontSize: '0.7rem',
+                          fontSize: '0.8rem',
                           fontWeight: '600',
                           color: isPaid ? '#ffffff' : '#94a3b8',
                           cursor: 'pointer',
@@ -364,7 +364,7 @@ ${isAdvance ? `Note: Advance payment` : ''}`;
                     );
                   })}
                 </div>
-                <div style={{ fontSize: '0.7rem', color: '#94a3b8', marginTop: '8px' }}>
+                <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '8px' }}>
                   🟩 Paid | 🟫 Unpaid | 🔵 Current Week | Hover for date & status
                 </div>
               </div>
@@ -413,23 +413,23 @@ ${isAdvance ? `Note: Advance payment` : ''}`;
                 return (
                   <>
                     <div>
-                      <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Total Weeks</div>
+                      <div style={{ fontSize: '0.8rem', color: '#94a3b8' }}>Total Weeks</div>
                       <div style={{ fontSize: '1.2rem', fontWeight: '700', color: '#3b82f6' }}>{ledger.length}</div>
                     </div>
                     <div>
-                      <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Weeks Paid</div>
+                      <div style={{ fontSize: '0.8rem', color: '#94a3b8' }}>Weeks Paid</div>
                       <div style={{ fontSize: '1.2rem', fontWeight: '700', color: '#10b981' }}>{paidWeeks}</div>
                     </div>
                     <div>
-                      <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Total Collected</div>
+                      <div style={{ fontSize: '0.8rem', color: '#94a3b8' }}>Total Collected</div>
                       <div style={{ fontSize: '1.1rem', fontWeight: '700', color: '#34d399' }}>₹{totalAmount.toLocaleString('en-IN')}</div>
                     </div>
                     <div>
-                      <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Loans Availed</div>
+                      <div style={{ fontSize: '0.8rem', color: '#94a3b8' }}>Loans Availed</div>
                       <div style={{ fontSize: '1.1rem', fontWeight: '700', color: '#f59e0b' }}>₹{totalLoanAvailed.toLocaleString('en-IN')}</div>
                     </div>
                     <div>
-                      <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Status</div>
+                      <div style={{ fontSize: '0.8rem', color: '#94a3b8' }}>Status</div>
                       <div style={{ fontSize: '0.9rem', fontWeight: '700' }}>
                         {mStats.status === 'CLEAN' && <span className="status-badge clean">Good Standing</span>}
                         {mStats.status === 'PENDING_1' && <span className="status-badge pending_1">1 Wk Pending</span>}
@@ -656,7 +656,7 @@ ${isAdvance ? `Note: Advance payment` : ''}`;
                                   {loan.nickname}
                                 </div>
                                 <span style={{
-                                  fontSize: '0.7rem',
+                                  fontSize: '0.8rem',
                                   fontWeight: '700',
                                   padding: '2px 8px',
                                   borderRadius: '999px',
@@ -676,7 +676,7 @@ ${isAdvance ? `Note: Advance payment` : ''}`;
                                   <div style={{ fontWeight: '700', fontSize: '1.1rem', color: paidCount === transactions.length ? '#10b981' : '#f59e0b' }}>
                                     ₹{loan.repaidAmount}
                                   </div>
-                                  <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+                                  <div style={{ fontSize: '0.8rem', color: '#94a3b8' }}>
                                     of ₹{loan.disbursedAmount}
                                   </div>
                                 </div>
@@ -714,10 +714,10 @@ ${isAdvance ? `Note: Advance payment` : ''}`;
                                         <div style={{ fontSize: '0.85rem', fontWeight: '600', color: tx.paid ? '#10b981' : '#f3f4f6' }}>
                                           W{tx.week}
                                         </div>
-                                        <div style={{ fontSize: '0.7rem', color: '#94a3b8', marginTop: '2px' }}>
+                                        <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '2px' }}>
                                           {tx.displayDate?.split(' ')[0] || formatDateDDMMYY(tx.date)}
                                         </div>
-                                        <div style={{ fontSize: '0.75rem', color: tx.paid ? '#10b981' : '#f87171', fontWeight: '600', marginTop: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '2px' }}>
+                                        <div style={{ fontSize: '0.8rem', color: tx.paid ? '#10b981' : '#f87171', fontWeight: '600', marginTop: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '2px' }}>
                                           {tx.paid && <CheckCircle2 size={12} />}
                                           {tx.paid ? '✓' : '○'}
                                         </div>
@@ -817,15 +817,15 @@ ${isAdvance ? `Note: Advance payment` : ''}`;
                   {/* Loan Amounts */}
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', marginBottom: '20px' }}>
                     <div style={{ background: 'var(--bg-dark)', border: '1px solid #374151', borderRadius: '8px', padding: '12px' }}>
-                      <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginBottom: '4px', textTransform: 'uppercase' }}>Requested</div>
+                      <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginBottom: '4px', textTransform: 'uppercase' }}>Requested</div>
                       <div style={{ fontSize: '1.1rem', fontWeight: '700', color: '#60a5fa' }}>₹{loan.requestedAmount.toLocaleString('en-IN')}</div>
                     </div>
                     <div style={{ background: 'var(--bg-dark)', border: '1px solid #374151', borderRadius: '8px', padding: '12px' }}>
-                      <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginBottom: '4px', textTransform: 'uppercase' }}>Repaid</div>
+                      <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginBottom: '4px', textTransform: 'uppercase' }}>Repaid</div>
                       <div style={{ fontSize: '1.1rem', fontWeight: '700', color: '#10b981' }}>₹{loan.repaidAmount.toLocaleString('en-IN')}</div>
                     </div>
                     <div style={{ background: 'var(--bg-dark)', border: '1px solid #374151', borderRadius: '8px', padding: '12px' }}>
-                      <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginBottom: '4px', textTransform: 'uppercase' }}>Remaining</div>
+                      <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginBottom: '4px', textTransform: 'uppercase' }}>Remaining</div>
                       <div style={{ fontSize: '1.1rem', fontWeight: '700', color: loan.status === 'ACTIVE' ? '#f87171' : '#6b7280' }}>₹{remaining.toLocaleString('en-IN')}</div>
                     </div>
                   </div>

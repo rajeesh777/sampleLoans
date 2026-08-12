@@ -114,7 +114,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .brand-subtitle {
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   color: var(--text-muted);
 }
 
@@ -312,7 +312,7 @@ h1, h2, h3, h4, h5, h6 {
 .metric-card.indigo::before { background: var(--indigo); }
 
 .metric-label {
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -330,7 +330,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .metric-subtext {
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   color: var(--text-dim);
   margin-top: 4px;
 }
@@ -405,7 +405,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .member-phone {
-  font-size: 0.78rem;
+  font-size: 0.8rem;
   color: var(--text-muted);
 }
 
@@ -425,7 +425,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .due-item-label {
-  font-size: 0.68rem;
+  font-size: 0.75rem;
   color: var(--text-dim);
 }
 
@@ -657,7 +657,7 @@ h1, h2, h3, h4, h5, h6 {
   gap: 4px;
   padding: 4px 8px;
   border-radius: var(--radius-sm);
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   font-weight: 700;
   text-transform: uppercase;
 }
@@ -784,7 +784,7 @@ h1, h2, h3, h4, h5, h6 {
 
   .pill-badge {
     padding: 5px 10px;
-    font-size: 0.75rem;
+    font-size: 0.8rem;
   }
 
   /* Six tabs have to share a narrow bar, so let each shrink evenly */
@@ -891,7 +891,45 @@ h1, h2, h3, h4, h5, h6 {
 
 @media (max-width: 480px) {
   .segmented-btn {
-    font-size: 0.78rem;
+    font-size: 0.8rem;
     padding: 8px 6px;
+  }
+}
+
+/* Touch targets. 44px is the practical minimum for a thumb; the week pills were
+   49x29 and the modal close button 22x36. min-height applies even to the
+   inline-styled buttons because none of them declare a height of their own. */
+@media (max-width: 767px) {
+  main button,
+  main select,
+  main input,
+  .modal-content button,
+  .modal-content select,
+  .modal-content input,
+  .top-bar button {
+    min-height: 44px;
+  }
+
+  .modal-close {
+    min-width: 44px;
+  }
+
+  /* Pills centre their label once they are taller than the text */
+  .week-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+/* These variants deliberately shrink below the base .btn height for denser
+   desktop layouts, and their class specificity beats the element rule above.
+   On a phone they go back to 44px. */
+@media (max-width: 767px) {
+  .btn-sm,
+  .btn-whatsapp,
+  .btn-toggle-paid,
+  .segmented-btn {
+    min-height: 44px;
   }
 }

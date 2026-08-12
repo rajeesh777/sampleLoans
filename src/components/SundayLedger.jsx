@@ -155,7 +155,7 @@ export default function SundayLedger({
           })}
         </div>
 
-        <p style={{ fontSize: '0.78rem', color: '#94a3b8', margin: '8px 0 0' }}>
+        <p style={{ fontSize: '0.8rem', color: '#94a3b8', margin: '8px 0 0' }}>
           {section === 'loans'
             ? 'Loan repayments per member · up to 10 weeks per loan'
             : `W1–W${currentWeek} · later weeks appear once paid ahead`}
@@ -211,7 +211,7 @@ export default function SundayLedger({
                           <div style={{ fontWeight: '700', fontSize: '1.1rem', color: paidCount === transactions.length ? '#10b981' : '#f59e0b' }}>
                             ₹{loan.repaidAmount}
                           </div>
-                          <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+                          <div style={{ fontSize: '0.8rem', color: '#94a3b8' }}>
                             of ₹{loan.disbursedAmount}
                           </div>
                         </div>
@@ -246,10 +246,10 @@ export default function SundayLedger({
                                 <div style={{ fontSize: '0.85rem', fontWeight: '600', color: tx.paid ? '#10b981' : '#f3f4f6' }}>
                                   W{tx.week}
                                 </div>
-                                <div style={{ fontSize: '0.7rem', color: '#94a3b8', marginTop: '2px' }}>
+                                <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '2px' }}>
                                   {tx.displayDate?.split(' ')[0] || formatDateDDMMYY(tx.date)}
                                 </div>
-                                <div style={{ fontSize: '0.75rem', color: tx.paid ? '#10b981' : '#f87171', fontWeight: '600', marginTop: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '2px' }}>
+                                <div style={{ fontSize: '0.8rem', color: tx.paid ? '#10b981' : '#f87171', fontWeight: '600', marginTop: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '2px' }}>
                                   {tx.paid && <CheckCircle2 size={12} />}
                                   {tx.paid ? '✓' : '○'}
                                 </div>
@@ -430,7 +430,7 @@ export default function SundayLedger({
                               <div style={{ fontWeight: '700', fontSize: '1.1rem', color: '#10b981' }}>
                                 ₹{totalPaid.toLocaleString('en-IN')}
                               </div>
-                              <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+                              <div style={{ fontSize: '0.8rem', color: '#94a3b8' }}>
                                 contributed
                               </div>
                             </div>

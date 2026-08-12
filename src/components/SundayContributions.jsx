@@ -113,7 +113,7 @@ export default function SundayContributions({
           <h2 style={{ fontSize: '1.25rem', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '10px' }}>
             Sunday Contributions — Week {selectedWeek} ({formatDateDDMMYY(weekData.date)})
             {weekData.ceased && (
-              <span className="status-badge" style={{ background: '#6b7280', color: '#f3f4f6', fontSize: '0.75rem' }}>
+              <span className="status-badge" style={{ background: '#6b7280', color: '#f3f4f6', fontSize: '0.8rem' }}>
                 🔒 CEASED
               </span>
             )}

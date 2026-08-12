@@ -177,7 +177,7 @@ export default function LoanManager({ state, groupStats, onCreateLoan, onRepayLo
 
                   {/* Repayment Progress Bar */}
                   <div style={{ marginTop: '12px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', color: '#94a3b8' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: '#94a3b8' }}>
                       <span>Repayment Progress ({weeksPaid}/10 Weeks Paid)</span>
                       <span>{progressPct}%</span>
                     </div>

@@ -140,7 +140,7 @@ export default function AnnualSettlement({ state, groupStats }) {
                   </div>
 
                   <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: '0.75rem', color: '#94a3b8', textTransform: 'uppercase' }}>Net Final Annual Payout</div>
+                    <div style={{ fontSize: '0.8rem', color: '#94a3b8', textTransform: 'uppercase' }}>Net Final Annual Payout</div>
                     <div style={{ fontSize: '1.2rem', fontWeight: '800', color: '#34d399' }}>
                       ₹{netPayout.toLocaleString('en-IN')}
                     </div>

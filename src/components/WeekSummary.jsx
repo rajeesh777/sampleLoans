@@ -57,7 +57,7 @@ export default function WeekSummary({ state, loggedInMember }) {
   );
 
   const avatar = (name, color) => (
-    <div className="avatar" style={{ backgroundColor: color || '#10b981', fontSize: '0.7rem', width: '28px', height: '28px' }}>
+    <div className="avatar" style={{ backgroundColor: color || '#10b981', fontSize: '0.8rem', width: '28px', height: '28px' }}>
       {name.substring(0, 2).toUpperCase()}
     </div>
   );
@@ -124,13 +124,13 @@ export default function WeekSummary({ state, loggedInMember }) {
                 onClick={() => setSelectedWeek(currentWeekNum)}
                 style={{
                   padding: '6px 10px', borderRadius: '6px', border: '1px solid #374151',
-                  background: 'transparent', color: '#94a3b8', fontSize: '0.78rem', cursor: 'pointer'
+                  background: 'transparent', color: '#94a3b8', fontSize: '0.8rem', cursor: 'pointer'
                 }}
               >
                 Reset to current week
               </button>
             )}
-            <span style={{ fontSize: '0.78rem', color: '#94a3b8' }}>
+            <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>
               {summary.displayDate}
             </span>
 
@@ -151,7 +151,7 @@ export default function WeekSummary({ state, loggedInMember }) {
 
           {exportNote && (
             <div style={{
-              fontSize: '0.78rem', color: '#93c5fd', marginBottom: '12px',
+              fontSize: '0.8rem', color: '#93c5fd', marginBottom: '12px',
               padding: '8px 10px', borderRadius: '6px',
               background: 'rgba(96, 165, 250, 0.1)', border: '1px solid rgba(96, 165, 250, 0.3)'
             }}>
@@ -183,7 +183,7 @@ export default function WeekSummary({ state, loggedInMember }) {
                         {money(c.amount)}
                       </span>
                       <span style={{
-                        fontSize: '0.72rem', fontWeight: '600', color: '#94a3b8',
+                        fontSize: '0.8rem', fontWeight: '600', color: '#94a3b8',
                         padding: '2px 8px', borderRadius: '999px', background: 'rgba(148,163,184,0.15)'
                       }}>
                         {c.paymentMethod}
@@ -191,7 +191,7 @@ export default function WeekSummary({ state, loggedInMember }) {
                       {badge && (
                         <span style={{
                           display: 'inline-flex', alignItems: 'center', gap: '4px',
-                          fontSize: '0.68rem', fontWeight: '700', color: badge.color,
+                          fontSize: '0.8rem', fontWeight: '700', color: badge.color,
                           padding: '2px 8px', borderRadius: '999px', background: badge.bg,
                           border: `1px solid ${badge.color}66`
                         }}>
@@ -200,12 +200,12 @@ export default function WeekSummary({ state, loggedInMember }) {
                       )}
                       {/* Payment date is shown whenever it differs from the due Sunday */}
                       {badge && c.paidAt && (
-                        <span style={{ fontSize: '0.75rem', color: '#93c5fd', fontWeight: '600' }}>
+                        <span style={{ fontSize: '0.8rem', color: '#93c5fd', fontWeight: '600' }}>
                           paid {formatDateDDMMYY(c.paidAt)}
                         </span>
                       )}
                       {!badge && (
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.72rem', color: '#10b981' }}>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem', color: '#10b981' }}>
                           <CheckCircle2 size={11} /> on time
                         </span>
                       )}
@@ -223,7 +223,7 @@ export default function WeekSummary({ state, loggedInMember }) {
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                   {summary.notPaid.map((m) => (
                     <span key={m.memberId} style={{
-                      fontSize: '0.78rem', color: '#fca5a5', padding: '4px 10px', borderRadius: '999px',
+                      fontSize: '0.8rem', color: '#fca5a5', padding: '4px 10px', borderRadius: '999px',
                       background: 'rgba(248, 113, 113, 0.12)', border: '1px solid rgba(248, 113, 113, 0.3)'
                     }}>
                       {m.name} · {money(m.amount)}
@@ -252,7 +252,7 @@ export default function WeekSummary({ state, loggedInMember }) {
                     <span style={{ fontWeight: '600', color: '#f3f4f6', fontSize: '0.88rem', flex: 1, minWidth: '110px' }}>
                       {r.name}
                       {r.loanNicknames.length > 0 && (
-                        <span style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: '500' }}>
+                        <span style={{ fontSize: '0.8rem', color: '#94a3b8', fontWeight: '500' }}>
                           {' '}· {r.loanNicknames.join(', ')}
                         </span>
                       )}
@@ -261,7 +261,7 @@ export default function WeekSummary({ state, loggedInMember }) {
                       {money(r.amount)}
                     </span>
                     {r.paidAt && (
-                      <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+                      <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>
                         paid {formatDateDDMMYY(r.paidAt)}
                       </span>
                     )}
@@ -290,7 +290,7 @@ export default function WeekSummary({ state, loggedInMember }) {
                       {l.name}
                       {l.nickname && (
                         <span style={{
-                          marginLeft: '8px', fontSize: '0.72rem', fontWeight: '600', color: '#c4b5fd',
+                          marginLeft: '8px', fontSize: '0.8rem', fontWeight: '600', color: '#c4b5fd',
                           padding: '2px 8px', borderRadius: '999px', background: 'rgba(167, 139, 250, 0.18)',
                           border: '1px solid rgba(167, 139, 250, 0.35)'
                         }}>
@@ -301,7 +301,7 @@ export default function WeekSummary({ state, loggedInMember }) {
                     <span style={{ fontWeight: '700', color: '#c4b5fd', fontSize: '0.88rem' }}>
                       {money(l.requestedAmount)} availed
                     </span>
-                    <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+                    <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>
                       fee {money(l.upfrontFee)} · {money(l.disbursedAmount)} paid out
                     </span>
                   </div>
@@ -342,7 +342,7 @@ export default function WeekSummary({ state, loggedInMember }) {
                 </span>
               </div>
 
-              <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginTop: '6px', lineHeight: '1.5' }}>
+              <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '6px', lineHeight: '1.5' }}>
                 ({money(summary.totalContribution)} + {money(summary.totalLoanReturn)}) + {money(summary.openingCash)} − {money(summary.totalNewLoanDisbursed)} = {money(summary.closingCash)}
               </div>
             </div>

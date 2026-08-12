@@ -88,7 +88,7 @@ export default function LoanCollections({
           <h2 style={{ fontSize: '1.25rem', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '10px' }}>
             {viewMode === 'active' ? 'Loan Collections' : 'Closed Loans'} — Week {selectedWeek} ({formatDateDDMMYY(weekData.date)})
             {weekData.ceased && (
-              <span className="status-badge" style={{ background: '#6b7280', color: '#f3f4f6', fontSize: '0.75rem' }}>
+              <span className="status-badge" style={{ background: '#6b7280', color: '#f3f4f6', fontSize: '0.8rem' }}>
                 🔒 CEASED
               </span>
             )}
@@ -287,7 +287,7 @@ export default function LoanCollections({
 
                   {/* Repayment Progress Bar */}
                   <div style={{ marginTop: '12px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', color: '#94a3b8' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: '#94a3b8' }}>
                       <span>Repayment Completed</span>
                       <span>100%</span>
                     </div>
