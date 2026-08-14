@@ -104,15 +104,32 @@ const buildRows = (summary, state, exportedBy) => {
   push('total', ['Total New Loans', money(summary.totalNewLoanRequested), '', money(summary.totalNewLoanDisbursed), ''], { moneyCols: [1, 3] });
   push('blank', []);
 
-  // --- 4. Calculations ---
-  push('section', ['4. CALCULATIONS']);
+  // --- 4. Miscellaneous expenses ---
+  const expenses = summary.expenses || [];
+  push('section', [`4. EXPENSES  (${expenses.length})`]);
+  push('header', ['Description', 'Amount', 'Paid By', '', 'Date']);
+  if (expenses.length === 0) {
+    push('data', ['No expenses recorded', '', '', '', ''], { muted: true });
+  } else {
+    expenses.forEach((e) => {
+      push('data', [e.description, money(e.amount), e.paymentMethod || 'Cash', '', e.date ? formatDateDDMMYY(e.date) : '—'], {
+        moneyCols: [1], negative: true
+      });
+    });
+  }
+  push('total', ['Total Expenses', money(summary.totalExpenses), '', '', ''], { moneyCols: [1] });
+  push('blank', []);
+
+  // --- 5. Calculations ---
+  push('section', ['5. CALCULATIONS']);
   push('header', ['Line', 'Amount', '', '', '']);
   push('data', ['+ Total contributions', money(summary.totalContribution), '', '', ''], { moneyCols: [1] });
   push('data', ['+ Total loan returns', money(summary.totalLoanReturn), '', '', ''], { moneyCols: [1] });
   push('data', [`+ Cash available as of week ${summary.weekNum - 1}`, money(summary.openingCash), '', '', ''], { moneyCols: [1] });
   push('data', ['− New loans given (cash paid out)', money(summary.totalNewLoanDisbursed), '', '', ''], { moneyCols: [1], negative: true });
+  push('data', ['− Miscellaneous expenses', money(summary.totalExpenses), '', '', ''], { moneyCols: [1], negative: true });
   push('total', [`Cash available after week ${summary.weekNum}`, money(summary.closingCash), '', '', ''], { moneyCols: [1], grand: true });
-  push('note', [`(${money(summary.totalContribution)} + ${money(summary.totalLoanReturn)}) + ${money(summary.openingCash)} − ${money(summary.totalNewLoanDisbursed)} = ${money(summary.closingCash)}`]);
+  push('note', [`(${money(summary.totalContribution)} + ${money(summary.totalLoanReturn)}) + ${money(summary.openingCash)} − ${money(summary.totalNewLoanDisbursed)} − ${money(summary.totalExpenses)} = ${money(summary.closingCash)}`]);
 
   return rows;
 };

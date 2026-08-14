@@ -1,7 +1,18 @@
 import React, { useState } from 'react';
-import { Settings as SettingsIcon, Calendar, Hash, Lock, LockOpen, CheckCircle2, Users, Plus, Edit2, Trash2, X } from 'lucide-react';
+import { Settings as SettingsIcon, Calendar, Hash, Lock, LockOpen, CheckCircle2, Users, Plus, Edit2, Trash2, X, Wallet } from 'lucide-react';
 
-export default function Settings({ state, onUpdateSettings, onCeaseWeek, onToggleEditLock, onUpdateMembers, onImportState, onResetState }) {
+export default function Settings({
+  state,
+  onUpdateSettings,
+  onCeaseWeek,
+  onToggleEditLock,
+  onUpdateMembers,
+  onImportState,
+  onResetState,
+  onAddExpense,
+  onUpdateExpense,
+  onDeleteExpense
+}) {
   const [startDate, setStartDate] = useState(state.startDate || '2026-01-04');
   const [totalWeeks, setTotalWeeks] = useState(state.totalWeeks || 52);
   const [groupName, setGroupName] = useState(state.groupName || '');
@@ -19,6 +30,14 @@ export default function Settings({ state, onUpdateSettings, onCeaseWeek, onToggl
     phone: '',
     upiId: '',
     avatarColor: '#10b981'
+  });
+  const [showExpenseModal, setShowExpenseModal] = useState(false);
+  const [editingExpenseId, setEditingExpenseId] = useState(null);
+  const [expenseForm, setExpenseForm] = useState({
+    description: '',
+    amount: '',
+    weekNum: state.currentWeekNum || 1,
+    paymentMethod: 'Cash'
   });
 
   const handleSaveSettings = () => {
@@ -165,6 +184,75 @@ export default function Settings({ state, onUpdateSettings, onCeaseWeek, onToggl
       });
 
       setSaveMessage('✓ Member deleted!');
+      setTimeout(() => setSaveMessage(''), 3000);
+    }
+  };
+
+  // Miscellaneous expense handlers — each expense is booked against one week and
+  // comes straight off the treasury cash figure shown on the dashboard.
+  const expenses = state.expenses || [];
+  const totalExpenses = expenses.reduce((sum, e) => sum + (e.amount || 0), 0);
+  const sortedExpenses = [...expenses].sort(
+    (a, b) => (b.weekNum - a.weekNum) || String(b.id).localeCompare(String(a.id))
+  );
+
+  const openAddExpenseModal = () => {
+    setEditingExpenseId(null);
+    setExpenseForm({
+      description: '',
+      amount: '',
+      weekNum: state.currentWeekNum || 1,
+      paymentMethod: 'Cash'
+    });
+    setShowExpenseModal(true);
+  };
+
+  const openEditExpenseModal = (expense) => {
+    setEditingExpenseId(expense.id);
+    setExpenseForm({
+      description: expense.description || '',
+      amount: expense.amount || '',
+      weekNum: expense.weekNum || state.currentWeekNum || 1,
+      paymentMethod: expense.paymentMethod || 'Cash'
+    });
+    setShowExpenseModal(true);
+  };
+
+  const handleSaveExpense = () => {
+    if (!expenseForm.description.trim()) {
+      alert('Please enter what the money was spent on');
+      return;
+    }
+
+    const amount = parseInt(expenseForm.amount, 10);
+    if (!amount || amount <= 0) {
+      alert('Please enter an expense amount greater than 0');
+      return;
+    }
+
+    const payload = {
+      description: expenseForm.description.trim(),
+      amount,
+      weekNum: parseInt(expenseForm.weekNum, 10),
+      paymentMethod: expenseForm.paymentMethod
+    };
+
+    if (editingExpenseId) {
+      onUpdateExpense(editingExpenseId, payload);
+      setSaveMessage('✓ Expense updated!');
+    } else {
+      onAddExpense(payload);
+      setSaveMessage('✓ Expense recorded and deducted from treasury cash!');
+    }
+
+    setShowExpenseModal(false);
+    setTimeout(() => setSaveMessage(''), 3000);
+  };
+
+  const handleDeleteExpense = (expense) => {
+    if (window.confirm(`Delete "${expense.description}"? ₹${(expense.amount || 0).toLocaleString('en-IN')} will be added back to treasury cash.`)) {
+      onDeleteExpense(expense.id);
+      setSaveMessage('✓ Expense deleted!');
       setTimeout(() => setSaveMessage(''), 3000);
     }
   };
@@ -609,6 +697,245 @@ export default function Settings({ state, onUpdateSettings, onCeaseWeek, onToggl
           )}
         </div>
       </div>
+
+      {/* Miscellaneous Expenses */}
+      <div className="card" style={{ marginBottom: '20px' }}>
+        <div className="card-header" style={{ marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+          <span className="card-title">
+            <Wallet size={18} color="#f59e0b" /> Miscellaneous Expenses
+          </span>
+          <button
+            onClick={openAddExpenseModal}
+            style={{
+              background: '#f59e0b',
+              color: '#1f2937',
+              border: 'none',
+              borderRadius: '6px',
+              padding: '8px 12px',
+              fontSize: '0.85rem',
+              fontWeight: '700',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px'
+            }}
+          >
+            <Plus size={16} /> Record Expense
+          </button>
+        </div>
+
+        <div style={{
+          background: 'rgba(245, 158, 11, 0.1)',
+          border: '1px solid rgba(245, 158, 11, 0.4)',
+          borderRadius: '8px',
+          padding: '12px',
+          marginBottom: '16px',
+          fontSize: '0.85rem',
+          color: '#fcd34d',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          gap: '10px',
+          flexWrap: 'wrap'
+        }}>
+          <span>
+            Group spending (stationery, refreshments, travel...) — deducted from treasury cash
+            and listed under the week it belongs to.
+          </span>
+          <strong style={{ whiteSpace: 'nowrap' }}>
+            {expenses.length} expense{expenses.length !== 1 ? 's' : ''} · ₹{totalExpenses.toLocaleString('en-IN')}
+          </strong>
+        </div>
+
+        {sortedExpenses.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '30px', color: '#94a3b8', fontSize: '0.9rem' }}>
+            No expenses recorded. Click "Record Expense" to add one.
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {sortedExpenses.map((expense) => (
+              <div
+                key={expense.id}
+                style={{
+                  background: 'var(--bg-dark)',
+                  border: '1px solid #374151',
+                  borderRadius: '8px',
+                  padding: '14px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  flexWrap: 'wrap'
+                }}
+              >
+                <span style={{
+                  fontSize: '0.8rem',
+                  fontWeight: '700',
+                  color: '#fbbf24',
+                  padding: '4px 10px',
+                  borderRadius: '999px',
+                  background: 'rgba(245, 158, 11, 0.15)',
+                  border: '1px solid rgba(245, 158, 11, 0.35)',
+                  whiteSpace: 'nowrap'
+                }}>
+                  W{expense.weekNum}
+                </span>
+
+                <div style={{ flex: 1, minWidth: '160px' }}>
+                  <div style={{ fontWeight: '600', color: '#ffffff', fontSize: '0.9rem' }}>
+                    {expense.description}
+                  </div>
+                  <div style={{ fontSize: '0.8rem', color: '#94a3b8' }}>
+                    {expense.paymentMethod || 'Cash'}
+                    {expense.date ? ` · ${expense.date}` : ''}
+                  </div>
+                </div>
+
+                <div style={{ fontWeight: '800', color: '#f87171', fontSize: '0.95rem', whiteSpace: 'nowrap' }}>
+                  − ₹{(expense.amount || 0).toLocaleString('en-IN')}
+                </div>
+
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button
+                    onClick={() => openEditExpenseModal(expense)}
+                    style={{
+                      background: '#3b82f6',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '6px',
+                      padding: '8px 10px',
+                      fontSize: '0.8rem',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px'
+                    }}
+                  >
+                    <Edit2 size={14} /> Edit
+                  </button>
+                  <button
+                    onClick={() => handleDeleteExpense(expense)}
+                    style={{
+                      background: '#ef4444',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '6px',
+                      padding: '8px 10px',
+                      fontSize: '0.8rem',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px'
+                    }}
+                  >
+                    <Trash2 size={14} /> Delete
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Expense Modal */}
+      {showExpenseModal && (
+        <div className="modal-overlay" onClick={() => setShowExpenseModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '450px' }}>
+            <div className="modal-header">
+              <h3 style={{ fontSize: '1.25rem', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Wallet size={18} color="#f59e0b" /> {editingExpenseId ? 'Edit Expense' : 'Record Expense'}
+              </h3>
+              <button className="modal-close" onClick={() => setShowExpenseModal(false)}>×</button>
+            </div>
+
+            <div style={{ marginBottom: '16px' }}>
+              <label className="form-label">Description</label>
+              <input
+                type="text"
+                className="form-input"
+                value={expenseForm.description}
+                onChange={(e) => setExpenseForm({ ...expenseForm, description: e.target.value })}
+                placeholder="e.g., Tea & snacks at collection"
+              />
+            </div>
+
+            <div style={{ marginBottom: '16px' }}>
+              <label className="form-label">Amount (₹)</label>
+              <input
+                type="number"
+                className="form-input"
+                value={expenseForm.amount}
+                onChange={(e) => setExpenseForm({ ...expenseForm, amount: e.target.value })}
+                placeholder="e.g., 250"
+                min="1"
+                step="10"
+              />
+              <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '4px' }}>
+                Deducted from treasury cash from this week onwards
+              </div>
+            </div>
+
+            <div style={{ marginBottom: '16px' }}>
+              <label className="form-label">Week</label>
+              <select
+                className="form-input"
+                value={expenseForm.weekNum}
+                onChange={(e) => setExpenseForm({ ...expenseForm, weekNum: e.target.value })}
+              >
+                {Array.from({ length: state.totalWeeks || 52 }).map((_, idx) => {
+                  const weekNum = idx + 1;
+                  const week = state.weeks[weekNum];
+                  return (
+                    <option key={weekNum} value={weekNum}>
+                      W{weekNum}{week?.displayDate ? ` — ${week.displayDate}` : ''}
+                      {weekNum === state.currentWeekNum ? ' (current)' : ''}
+                    </option>
+                  );
+                })}
+              </select>
+            </div>
+
+            <div style={{ marginBottom: '16px' }}>
+              <label className="form-label">Paid By</label>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                {['Cash', 'UPI', 'Bank'].map((method) => (
+                  <button
+                    key={method}
+                    onClick={() => setExpenseForm({ ...expenseForm, paymentMethod: method })}
+                    style={{
+                      flex: 1,
+                      padding: '10px',
+                      borderRadius: '6px',
+                      border: `1px solid ${expenseForm.paymentMethod === method ? '#f59e0b' : '#374151'}`,
+                      background: expenseForm.paymentMethod === method ? 'rgba(245, 158, 11, 0.18)' : 'transparent',
+                      color: expenseForm.paymentMethod === method ? '#fbbf24' : '#9ca3af',
+                      fontSize: '0.85rem',
+                      fontWeight: '600',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    {method}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+              <button className="btn btn-secondary" onClick={() => setShowExpenseModal(false)}>
+                Cancel
+              </button>
+              <button
+                className="btn btn-primary"
+                onClick={handleSaveExpense}
+                style={{ background: '#f59e0b', color: '#1f2937' }}
+              >
+                {editingExpenseId ? '✓ Update Expense' : 'Record Expense'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Member Modal */}
       {showMemberModal && (

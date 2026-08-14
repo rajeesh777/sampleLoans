@@ -82,7 +82,12 @@ export default function AnnualSettlement({ state, groupStats }) {
             <Award size={14} /> Total Group Profit Pool
           </div>
           <div className="metric-value">₹{groupStats.totalGroupProfitsEarned.toLocaleString('en-IN')}</div>
-          <div className="metric-subtext">Earned from 10% loan fees</div>
+          {/* Expenses are met out of the group's earnings, so the pool shown is net */}
+          <div className="metric-subtext">
+            {groupStats.totalExpenses > 0
+              ? `₹${groupStats.totalUpfrontFeesEarned.toLocaleString('en-IN')} loan fees − ₹${groupStats.totalExpenses.toLocaleString('en-IN')} expenses`
+              : 'Earned from 10% loan fees'}
+          </div>
         </div>
 
         <div className="metric-card indigo">

@@ -350,6 +350,58 @@ export default function App() {
     });
   };
 
+  // Record a miscellaneous group expense against a week; deducted from treasury cash
+  const handleAddExpense = (expense) => {
+    setState((prevState) => {
+      const weekNum = Number(expense.weekNum) || prevState.currentWeekNum || 1;
+      const newExpense = {
+        id: `exp-${Date.now()}`,
+        description: (expense.description || '').trim() || 'Miscellaneous expense',
+        amount: Number(expense.amount) || 0,
+        weekNum,
+        // Default to the week's Sunday so the expense sorts with that week's activity
+        date: expense.date || prevState.weeks[weekNum]?.date || new Date().toISOString().slice(0, 10),
+        paymentMethod: expense.paymentMethod || 'Cash',
+        createdAt: new Date().toISOString().slice(0, 10)
+      };
+
+      return {
+        ...prevState,
+        expenses: [newExpense, ...(prevState.expenses || [])]
+      };
+    });
+  };
+
+  // Edit an existing miscellaneous expense
+  const handleUpdateExpense = (expenseId, updates) => {
+    setState((prevState) => {
+      const nextExpenses = (prevState.expenses || []).map((e) => {
+        if (e.id !== expenseId) return e;
+        const weekNum = Number(updates.weekNum) || e.weekNum;
+        return {
+          ...e,
+          description: (updates.description || '').trim() || e.description,
+          amount: Number(updates.amount) || 0,
+          weekNum,
+          date: updates.date || prevState.weeks[weekNum]?.date || e.date,
+          paymentMethod: updates.paymentMethod || e.paymentMethod
+        };
+      });
+
+      return {
+        ...prevState,
+        expenses: nextExpenses
+      };
+    });
+  };
+
+  // Remove a miscellaneous expense; the amount returns to treasury cash
+  const handleDeleteExpense = (expenseId) => {
+    setState((prevState) => ({
+      ...prevState,
+      expenses: (prevState.expenses || []).filter((e) => e.id !== expenseId)
+    }));
+  };
 
   // Import JSON backup
   const handleImportState = (importedData) => {
@@ -537,6 +589,9 @@ export default function App() {
             onUpdateSettings={handleUpdateSettings}
             onCeaseWeek={handleCeaseWeek}
             onToggleEditLock={handleToggleEditLock}
+            onAddExpense={handleAddExpense}
+            onUpdateExpense={handleUpdateExpense}
+            onDeleteExpense={handleDeleteExpense}
             onImportState={handleImportState}
             onResetState={handleResetState}
           />

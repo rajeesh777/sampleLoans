@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   ClipboardList, ChevronDown, ChevronUp, CheckCircle2, AlertCircle,
-  HandCoins, IndianRupee, Calculator, FastForward, Clock, Download
+  HandCoins, IndianRupee, Calculator, FastForward, Clock, Download, Wallet
 } from 'lucide-react';
 import { getWeekSummary, formatDateDDMMYY } from '../utils/storage';
 import { exportWeekSummaryImage } from '../utils/exportSummaryImage';
@@ -310,19 +310,58 @@ export default function WeekSummary({ state, loggedInMember }) {
             )}
           </div>
 
-          {/* ---- 4. Calculations ---- */}
+          {/* ---- 4. Miscellaneous expenses ---- */}
+          <div style={subCard}>
+            {sectionTitle(Wallet, '#f59e0b', `4. Expenses (${summary.expenses.length})`,
+              <span style={{ fontSize: '0.95rem', fontWeight: '700', color: '#f87171' }}>− {money(summary.totalExpenses)}</span>
+            )}
+
+            {summary.expenses.length === 0 ? emptyRow('No expenses recorded for this week.') : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {summary.expenses.map((e) => (
+                  <div key={e.id} style={{
+                    display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap',
+                    padding: '8px 10px', borderRadius: '6px', background: 'rgba(245, 158, 11, 0.08)',
+                    border: '1px solid rgba(245, 158, 11, 0.22)'
+                  }}>
+                    <Wallet size={16} color="#f59e0b" />
+                    <span style={{ fontWeight: '600', color: '#f3f4f6', fontSize: '0.88rem', flex: 1, minWidth: '110px' }}>
+                      {e.description}
+                    </span>
+                    <span style={{ fontWeight: '700', color: '#f87171', fontSize: '0.88rem' }}>
+                      − {money(e.amount)}
+                    </span>
+                    <span style={{
+                      fontSize: '0.8rem', fontWeight: '600', color: '#94a3b8',
+                      padding: '2px 8px', borderRadius: '999px', background: 'rgba(148,163,184,0.15)'
+                    }}>
+                      {e.paymentMethod}
+                    </span>
+                    {e.date && (
+                      <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>
+                        {formatDateDDMMYY(e.date)}
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* ---- 5. Calculations ---- */}
           <div style={{
             background: 'rgba(96, 165, 250, 0.1)',
             border: '1px solid rgba(96, 165, 250, 0.35)', borderRadius: '8px', padding: '14px'
           }}>
-            {sectionTitle(Calculator, '#60a5fa', '4. Calculations')}
+            {sectionTitle(Calculator, '#60a5fa', '5. Calculations')}
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '7px', fontSize: '0.86rem' }}>
               {[
                 ['Total contributions', summary.totalContribution, '#34d399', '+'],
                 ['Total loan returns', summary.totalLoanReturn, '#fbbf24', '+'],
                 [`Cash available as of week ${selectedWeek - 1}`, summary.openingCash, '#93c5fd', '+'],
-                ['New loans given (cash paid out)', summary.totalNewLoanDisbursed, '#f87171', '−']
+                ['New loans given (cash paid out)', summary.totalNewLoanDisbursed, '#f87171', '−'],
+                ['Miscellaneous expenses', summary.totalExpenses, '#f87171', '−']
               ].map(([label, value, color, sign]) => (
                 <div key={label} style={{ display: 'flex', justifyContent: 'space-between', gap: '10px' }}>
                   <span style={{ color: '#cbd5e1' }}>{sign} {label}</span>
@@ -343,7 +382,7 @@ export default function WeekSummary({ state, loggedInMember }) {
               </div>
 
               <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '6px', lineHeight: '1.5' }}>
-                ({money(summary.totalContribution)} + {money(summary.totalLoanReturn)}) + {money(summary.openingCash)} − {money(summary.totalNewLoanDisbursed)} = {money(summary.closingCash)}
+                ({money(summary.totalContribution)} + {money(summary.totalLoanReturn)}) + {money(summary.openingCash)} − {money(summary.totalNewLoanDisbursed)} − {money(summary.totalExpenses)} = {money(summary.closingCash)}
               </div>
             </div>
           </div>

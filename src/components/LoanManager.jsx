@@ -93,8 +93,9 @@ export default function LoanManager({ state, groupStats, onCreateLoan, onRepayLo
           <div className="metric-label">
             <Award size={14} /> Total 10% Fees Earned
           </div>
-          <div className="metric-value">₹{groupStats.totalGroupProfitsEarned.toLocaleString('en-IN')}</div>
-          <div className="metric-subtext">Direct Group Profit</div>
+          {/* Gross fees — the label says fees, and totalGroupProfitsEarned is now net of expenses */}
+          <div className="metric-value">₹{groupStats.totalUpfrontFeesEarned.toLocaleString('en-IN')}</div>
+          <div className="metric-subtext">Before group expenses</div>
         </div>
 
         <div className="metric-card indigo">

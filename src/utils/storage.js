@@ -114,6 +114,26 @@ export const getInitialState = () => {
         createdAt: '2026-01-04'
       }
     ],
+    expenses: [
+      {
+        id: 'exp-1',
+        description: 'Ledger register & stationery',
+        amount: 250,
+        weekNum: 1,
+        date: '2026-01-04',
+        paymentMethod: 'Cash',
+        createdAt: '2026-01-04'
+      },
+      {
+        id: 'exp-2',
+        description: 'Tea & snacks at collection',
+        amount: 450,
+        weekNum: 2,
+        date: '2026-01-11',
+        paymentMethod: 'Cash',
+        createdAt: '2026-01-11'
+      }
+    ],
     groupUpiVpa: 'isthooi@upi',
     groupNotes: 'Collection every Sunday around 8:00 PM.'
   };
@@ -263,7 +283,13 @@ export const getCashAsOfWeek = (state, weekNum) => {
     if (l.startWeekNum <= weekNum) disbursed += l.disbursedAmount;
   });
 
-  return contributions + loanReturns - disbursed;
+  // Miscellaneous expenses leave the box in the week they are booked against.
+  let expenses = 0;
+  (state.expenses || []).forEach((e) => {
+    if (Number(e.weekNum) <= weekNum) expenses += (e.amount || 0);
+  });
+
+  return contributions + loanReturns - disbursed - expenses;
 };
 
 // Everything that happened in a single week, for the dashboard week summary.
@@ -348,9 +374,23 @@ export const getWeekSummary = (state, weekNum) => {
   const totalNewLoanRequested = newLoans.reduce((sum, l) => sum + l.requestedAmount, 0);
   const totalNewLoanDisbursed = newLoans.reduce((sum, l) => sum + l.disbursedAmount, 0);
 
-  // --- 4. Calculations ---
+  // --- 4. Miscellaneous expenses booked to this week ---
+  const expenses = (state.expenses || [])
+    .filter((e) => Number(e.weekNum) === Number(weekNum))
+    .map((e) => ({
+      id: e.id,
+      description: e.description || 'Miscellaneous expense',
+      amount: e.amount || 0,
+      paymentMethod: e.paymentMethod || 'Cash',
+      date: e.date || weekData.date || null
+    }));
+
+  const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
+
+  // --- 5. Calculations ---
   const openingCash = getCashAsOfWeek(state, weekNum - 1);
-  const closingCash = (totalContribution + totalLoanReturn) + openingCash - totalNewLoanDisbursed;
+  const closingCash =
+    (totalContribution + totalLoanReturn) + openingCash - totalNewLoanDisbursed - totalExpenses;
 
   return {
     weekNum,
@@ -364,6 +404,8 @@ export const getWeekSummary = (state, weekNum) => {
     newLoans,
     totalNewLoanRequested,
     totalNewLoanDisbursed,
+    expenses,
+    totalExpenses,
     openingCash,
     closingCash
   };
@@ -399,24 +441,32 @@ export const getGroupStats = (state) => {
 
   const loans = state.loans || [];
   let totalDisbursedLoans = 0;
-  let totalGroupProfitsEarned = 0;
+  let totalUpfrontFeesEarned = 0;
   let totalLoanPrincipalRepaid = 0;
   let totalActiveLoansBalance = 0;
 
   loans.forEach((l) => {
     totalDisbursedLoans += l.disbursedAmount;
-    totalGroupProfitsEarned += l.upfrontFee;
+    totalUpfrontFeesEarned += l.upfrontFee;
     totalLoanPrincipalRepaid += l.repaidAmount;
     if (l.status === 'ACTIVE') {
       totalActiveLoansBalance += (l.requestedAmount - l.repaidAmount);
     }
   });
 
+  // Miscellaneous group spending (stationery, refreshments, ...) is cash that has
+  // already left the box. It is paid out of the group's own earnings, so it reduces
+  // the distributable profit pool as well as the treasury — but only once: the
+  // treasury line below adds the gross fees and subtracts expenses separately.
+  const totalExpenses = (state.expenses || []).reduce((sum, e) => sum + (e.amount || 0), 0);
+  const totalGroupProfitsEarned = totalUpfrontFeesEarned - totalExpenses;
+
   const treasuryCash =
     totalRegularCollectedAllTime +
-    totalGroupProfitsEarned +
+    totalUpfrontFeesEarned +
     totalLoanPrincipalRepaid -
-    totalDisbursedLoans;
+    totalDisbursedLoans -
+    totalExpenses;
 
   state.members.forEach((m) => {
     const mStats = getMemberStats(state, m.id);
@@ -442,9 +492,11 @@ export const getGroupStats = (state) => {
     currentWeekPendingCount: totalMembers - currentWeekPaidCount,
     totalRegularCollectedAllTime,
     totalDisbursedLoans,
+    totalUpfrontFeesEarned,
     totalGroupProfitsEarned,
     totalLoanPrincipalRepaid,
     totalActiveLoansBalance,
+    totalExpenses,
     treasuryCash,
     totalOverdueMembersCount,
     totalBlockedMembersCount,
