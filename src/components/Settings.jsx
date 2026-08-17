@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Settings as SettingsIcon, Calendar, Hash, Lock, LockOpen, CheckCircle2, Users, Plus, Edit2, Trash2, X, Wallet } from 'lucide-react';
+import AccessControl from './AccessControl';
 
 export default function Settings({
   state,
@@ -11,7 +12,14 @@ export default function Settings({
   onResetState,
   onAddExpense,
   onUpdateExpense,
-  onDeleteExpense
+  onDeleteExpense,
+  isSuperAdmin,
+  today,
+  onSetMemberRole,
+  onSetFeatureOverride,
+  onAddGrant,
+  onRevokeGrant,
+  onTransferSuperAdmin
 }) {
   const [startDate, setStartDate] = useState(state.startDate || '2026-01-04');
   const [totalWeeks, setTotalWeeks] = useState(state.totalWeeks || 52);
@@ -311,6 +319,19 @@ export default function Settings({
           <Lock size={16} />
           <span><strong>⚠️ EDIT OPERATIONS LOCKED</strong> - All editing is currently disabled. Unlock from Settings to resume operations.</span>
         </div>
+      )}
+
+      {/* Access control sits above the group settings: only the super admin sees it. */}
+      {isSuperAdmin && (
+        <AccessControl
+          state={state}
+          today={today}
+          onSetMemberRole={onSetMemberRole}
+          onSetFeatureOverride={onSetFeatureOverride}
+          onAddGrant={onAddGrant}
+          onRevokeGrant={onRevokeGrant}
+          onTransferSuperAdmin={onTransferSuperAdmin}
+        />
       )}
 
       {/* Settings Form */}

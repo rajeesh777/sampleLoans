@@ -1,7 +1,24 @@
 import React from 'react';
-import { LayoutDashboard, Calendar, HandCoins, Award, Users, AlertTriangle, Download, Settings as SettingsIcon, LogOut } from 'lucide-react';
+import { LayoutDashboard, Calendar, HandCoins, Award, Users, AlertTriangle, Download, Settings as SettingsIcon, LogOut, ShieldCheck } from 'lucide-react';
+import { can } from '../utils/permissions';
 
-export default function Navbar({ activeTab, setActiveTab, groupStats, loggedInMember, onLogout, memberCount, weeklyAmount }) {
+// Single source for the tab strip so desktop and mobile can never drift apart.
+const NAV_TABS = [
+  { tab: 'dashboard', label: 'Dashboard', shortLabel: 'Home', Icon: LayoutDashboard },
+  { tab: 'contributions', label: 'Contributions', shortLabel: 'Contrib', Icon: Calendar },
+  { tab: 'loan-collections', label: 'Loan Collections', shortLabel: 'Loans', Icon: HandCoins },
+  { tab: 'settlement', label: 'Year-End (Wk 52)', shortLabel: 'Wk 52', Icon: Award },
+  { tab: 'members', label: 'Members', shortLabel: 'Members', Icon: Users },
+  { tab: 'settings', label: 'Settings', shortLabel: 'Settings', Icon: SettingsIcon }
+];
+
+export default function Navbar({ activeTab, setActiveTab, groupStats, loggedInMember, onLogout, memberCount, weeklyAmount, access, role }) {
+  // Only tabs this member may open. `access` is undefined only if a caller forgets to
+  // pass it, in which case fall back to showing everything rather than an empty nav.
+  const visibleTabs = access
+    ? NAV_TABS.filter((t) => can(access, t.tab, 'view'))
+    : NAV_TABS;
+
   return (
     <>
       {/* Top Header */}
@@ -21,11 +38,27 @@ export default function Navbar({ activeTab, setActiveTab, groupStats, loggedInMe
             <span>👤 {loggedInMember?.name}</span>
           </div>
 
+          {/* Everyone can see their own role, so read-only screens are never a surprise */}
+          {role && (
+            <div
+              className="pill-badge"
+              style={{
+                background: `${role.color}22`,
+                border: `1px solid ${role.color}`,
+                color: role.color
+              }}
+              title={role.description}
+            >
+              <ShieldCheck size={14} />
+              <span>{role.label}</span>
+            </div>
+          )}
+
           <div className="pill-badge emerald">
             <span>Week {groupStats.currentWeek} of 52</span>
           </div>
 
-          {groupStats.totalOverdueMembersCount > 0 && (
+          {groupStats.totalOverdueMembersCount > 0 && (!access || can(access, 'defaulters', 'view')) && (
             <div
               className={`pill-badge ${groupStats.totalBlockedMembersCount > 0 ? 'rose' : 'gold'}`}
               onClick={() => setActiveTab('defaulters')}
@@ -70,76 +103,32 @@ export default function Navbar({ activeTab, setActiveTab, groupStats, loggedInMe
 
       {/* Desktop Navigation Tabs */}
       <nav className="desktop-nav">
-        <button
-          className={`nav-item ${activeTab === 'dashboard' ? 'active' : ''}`}
-          onClick={() => setActiveTab('dashboard')}
-        >
-          <LayoutDashboard size={18} />
-          <span>Dashboard</span>
-        </button>
-
-        <button
-          className={`nav-item ${activeTab === 'contributions' ? 'active' : ''}`}
-          onClick={() => setActiveTab('contributions')}
-        >
-          <Calendar size={18} />
-          <span>Contributions</span>
-        </button>
-
-        <button
-          className={`nav-item ${activeTab === 'loan-collections' ? 'active' : ''}`}
-          onClick={() => setActiveTab('loan-collections')}
-        >
-          <HandCoins size={18} />
-          <span>Loan Collections</span>
-        </button>
-
-        <button
-          className={`nav-item ${activeTab === 'settlement' ? 'active' : ''}`}
-          onClick={() => setActiveTab('settlement')}
-        >
-          <Award size={18} />
-          <span>Year-End (Wk 52)</span>
-        </button>
-
-        <button
-          className={`nav-item ${activeTab === 'members' ? 'active' : ''}`}
-          onClick={() => setActiveTab('members')}
-        >
-          <Users size={18} />
-          <span>Members</span>
-        </button>
-
-        <button
-          className={`nav-item ${activeTab === 'settings' ? 'active' : ''}`}
-          onClick={() => setActiveTab('settings')}
-        >
-          <SettingsIcon size={18} />
-          <span>Settings</span>
-        </button>
+        {visibleTabs.map(({ tab, label, Icon }) => (
+          <button
+            key={tab}
+            className={`nav-item ${activeTab === tab ? 'active' : ''}`}
+            onClick={() => setActiveTab(tab)}
+          >
+            <Icon size={18} />
+            <span>{label}</span>
+          </button>
+        ))}
       </nav>
 
       {/* Mobile Bottom Navigation Bar */}
       {/* aria-label/title carry the name because the visible label is hidden on
           very narrow screens, where six labels cannot fit side by side. */}
       <div className="mobile-bottom-nav">
-        {[
-          { tab: 'dashboard', label: 'Home', Icon: LayoutDashboard },
-          { tab: 'contributions', label: 'Contrib', Icon: Calendar },
-          { tab: 'loan-collections', label: 'Loans', Icon: HandCoins },
-          { tab: 'settlement', label: 'Wk 52', Icon: Award },
-          { tab: 'members', label: 'Members', Icon: Users },
-          { tab: 'settings', label: 'Settings', Icon: SettingsIcon }
-        ].map(({ tab, label, Icon }) => (
+        {visibleTabs.map(({ tab, shortLabel, Icon }) => (
           <button
             key={tab}
             className={`mobile-nav-btn ${activeTab === tab ? 'active' : ''}`}
             onClick={() => setActiveTab(tab)}
-            aria-label={label}
-            title={label}
+            aria-label={shortLabel}
+            title={shortLabel}
           >
             <Icon size={20} />
-            <span>{label}</span>
+            <span>{shortLabel}</span>
           </button>
         ))}
       </div>

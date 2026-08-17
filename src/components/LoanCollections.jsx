@@ -1,12 +1,11 @@
 import React, { useState } from 'react';
-import { Calendar, CheckCircle2, CheckSquare, Clock, Filter, Tag, Lock, Plus } from 'lucide-react';
+import { Calendar, CheckCircle2, Clock, Filter, Tag, Lock, Plus } from 'lucide-react';
 import { getMemberStats, formatDateDDMMYY } from '../utils/storage';
 
 export default function LoanCollections({
   state,
   editLocked,
   onToggleLoanInstallment,
-  onMarkAllPaid,
   onAdvanceLoanInstallment,
   onCeaseWeek,
   onCreateLoan
@@ -128,14 +127,6 @@ export default function LoanCollections({
                 disabled={weekData.ceased || editLocked}
               >
                 <Filter size={14} /> Filter: {filterMode}
-              </button>
-
-              <button
-                className="btn btn-primary btn-sm"
-                onClick={() => onMarkAllPaid(selectedWeek)}
-                disabled={weekData.ceased || editLocked}
-              >
-                <CheckSquare size={16} /> Mark All Paid
               </button>
 
               <button

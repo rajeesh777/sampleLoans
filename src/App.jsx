@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Clock, Eye, LogOut, ShieldAlert } from 'lucide-react';
 import Navbar from './components/Navbar';
 import Login from './components/Login';
 import Dashboard from './components/Dashboard';
@@ -18,6 +19,21 @@ import {
   generate52Sundays
 } from './utils/storage';
 
+import {
+  FEATURES,
+  can,
+  createGrant,
+  daysRemaining,
+  describeWindow,
+  featureForTab,
+  getActiveGrants,
+  getMemberAccess,
+  getRole,
+  isSuperAdmin as checkSuperAdmin,
+  normalizeAccess,
+  todayStr
+} from './utils/permissions';
+
 export default function App() {
   const [state, setState] = useState(() => loadState());
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -25,6 +41,18 @@ export default function App() {
     const saved = localStorage.getItem('ISTHOOI_LOGGED_IN_MEMBER');
     return saved ? JSON.parse(saved) : null;
   });
+
+  // Today's date, re-read on a timer so a timed grant starts and lapses on its own
+  // without anyone reloading the page.
+  const [today, setToday] = useState(() => todayStr());
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      const now = todayStr();
+      setToday((prev) => (prev === now ? prev : now));
+    }, 60000);
+    return () => clearInterval(timer);
+  }, []);
 
   // Sync state changes to localStorage
   useEffect(() => {
@@ -53,8 +81,49 @@ export default function App() {
 
   const groupStats = getGroupStats(state);
 
+  // The logged-in copy is a snapshot taken at sign-in. Read the live record so a
+  // rename or a role change lands without forcing a re-login.
+  const currentMember =
+    state.members.find((m) => m.id === loggedInMember?.id) || null;
+
+  // Access is derived, never stored on the session — revoking it takes effect at once.
+  // Memoised so it stays referentially stable between renders; the redirect effect
+  // below keys off it and would otherwise re-run on every render.
+  const access = useMemo(
+    () => getMemberAccess(state, currentMember?.id, today),
+    [state, currentMember?.id, today]
+  );
+  const isAdmin = checkSuperAdmin(state, currentMember?.id);
+  const canView = (feature) => can(access, feature, 'view');
+  const canEdit = (feature) => can(access, feature, 'edit');
+
+  // The UI hides controls a member may not use, but every mutation re-checks: a stale
+  // render, or a grant that lapsed with a dialog still open, must not slip a write past.
+  const blocked = (feature) => {
+    if (canEdit(feature)) return false;
+    console.warn(
+      `Access denied: ${currentMember?.name || 'unknown user'} cannot edit "${feature}"`
+    );
+    return true;
+  };
+
+  // A member dropped from the roster loses their session at the next render.
+  useEffect(() => {
+    if (loggedInMember && !currentMember) setLoggedInMember(null);
+  }, [loggedInMember, currentMember]);
+
+  // If the super admin takes a tab away while the member is sitting on it, move them
+  // to the first tab they can still open rather than leaving a blank content area.
+  useEffect(() => {
+    if (!currentMember) return;
+    if (can(access, featureForTab(activeTab), 'view')) return;
+    const fallback = FEATURES.find((f) => can(access, f.key, 'view'));
+    if (fallback && fallback.key !== activeTab) setActiveTab(fallback.key);
+  }, [access, activeTab, currentMember]);
+
   // Toggle regular Sunday contribution payment
   const handleTogglePayment = (weekNum, memberId) => {
+    if (blocked('contributions')) return;
     setState((prevState) => {
       const nextWeeks = { ...prevState.weeks };
       const currentWeekData = nextWeeks[weekNum] || { collections: {} };
@@ -91,6 +160,7 @@ export default function App() {
 
   // Toggle loan installment payment for a member on a specific Sunday
   const handleToggleLoanInstallment = (weekNum, memberId, loanId) => {
+    if (blocked('loan-collections')) return;
     setState((prevState) => {
       const nextWeeks = { ...prevState.weeks };
       const currentWeekData = nextWeeks[weekNum] || { collections: {} };
@@ -140,36 +210,9 @@ export default function App() {
     });
   };
 
-  // Bulk action: Mark all members paid for selected Sunday
-  const handleMarkAllPaid = (weekNum) => {
-    setState((prevState) => {
-      const nextWeeks = { ...prevState.weeks };
-      const weekData = nextWeeks[weekNum] || { collections: {} };
-      const updatedCollections = { ...weekData.collections };
-
-      prevState.members.forEach((m) => {
-        updatedCollections[m.id] = {
-          ...(updatedCollections[m.id] || {}),
-          paid: true,
-          amount: 1000,
-          paidAt: new Date().toISOString().slice(0, 10)
-        };
-      });
-
-      nextWeeks[weekNum] = {
-        ...weekData,
-        collections: updatedCollections
-      };
-
-      return {
-        ...prevState,
-        weeks: nextWeeks
-      };
-    });
-  };
-
   // Change payment method (UPI, Cash, Bank)
   const handleChangePaymentMethod = (weekNum, memberId, method) => {
+    if (blocked('contributions')) return;
     setState((prevState) => {
       const nextWeeks = { ...prevState.weeks };
       const weekData = nextWeeks[weekNum] || { collections: {} };
@@ -203,6 +246,7 @@ export default function App() {
 
   // Advance payment for Sunday contributions (custom amount distributed across weeks)
   const handleAdvancePayment = (startWeek, memberId, totalAmount, method = 'UPI') => {
+    if (blocked('contributions')) return;
     setState((prevState) => {
       const nextWeeks = { ...prevState.weeks };
       const weeklyAmount = prevState.weeklyAmount || 1000;
@@ -249,6 +293,7 @@ export default function App() {
 
   // Advance payment for loan installments (custom amount distributed across weeks)
   const handleAdvanceLoanInstallment = (startWeek, memberId, loanId, totalAmount) => {
+    if (blocked('loan-collections')) return;
     setState((prevState) => {
       const nextWeeks = { ...prevState.weeks };
       const targetLoan = prevState.loans.find((l) => l.id === loanId);
@@ -305,6 +350,7 @@ export default function App() {
 
   // Create new loan (10% upfront fee deduction)
   const handleCreateLoan = (loanData) => {
+    if (blocked('loan-collections')) return;
     const newLoan = {
       id: `loan-${Date.now()}`,
       memberId: loanData.memberId,
@@ -328,6 +374,7 @@ export default function App() {
 
   // Record extra loan repayment installment
   const handleRepayLoanExtra = (loanId, amount) => {
+    if (blocked('loan-collections')) return;
     setState((prevState) => {
       const nextLoans = prevState.loans.map((loan) => {
         if (loan.id === loanId) {
@@ -352,6 +399,7 @@ export default function App() {
 
   // Record a miscellaneous group expense against a week; deducted from treasury cash
   const handleAddExpense = (expense) => {
+    if (blocked('settings')) return;
     setState((prevState) => {
       const weekNum = Number(expense.weekNum) || prevState.currentWeekNum || 1;
       const newExpense = {
@@ -374,6 +422,7 @@ export default function App() {
 
   // Edit an existing miscellaneous expense
   const handleUpdateExpense = (expenseId, updates) => {
+    if (blocked('settings')) return;
     setState((prevState) => {
       const nextExpenses = (prevState.expenses || []).map((e) => {
         if (e.id !== expenseId) return e;
@@ -397,6 +446,7 @@ export default function App() {
 
   // Remove a miscellaneous expense; the amount returns to treasury cash
   const handleDeleteExpense = (expenseId) => {
+    if (blocked('settings')) return;
     setState((prevState) => ({
       ...prevState,
       expenses: (prevState.expenses || []).filter((e) => e.id !== expenseId)
@@ -405,17 +455,23 @@ export default function App() {
 
   // Import JSON backup
   const handleImportState = (importedData) => {
-    setState(importedData);
+    if (blocked('settings')) return;
+    // A backup may predate access control, or carry a roster that no longer matches
+    // its access block — rebuild it so an import can never leave the group locked out.
+    setState({ ...importedData, access: normalizeAccess(importedData) });
   };
 
   // Reset to initial demo state
   const handleResetState = () => {
+    if (blocked('settings')) return;
     const fresh = getInitialState();
     setState(fresh);
   };
 
-  // Cease a week (lock it from further edits)
+  // Cease a week (lock it from further edits). Reachable from Settings and from the
+  // two collection screens, so either kind of edit right is enough.
   const handleCeaseWeek = (weekNum) => {
+    if (!canEdit('contributions') && blocked('settings')) return;
     setState((prevState) => ({
       ...prevState,
       weeks: {
@@ -431,6 +487,7 @@ export default function App() {
 
   // Update settings and regenerate weeks if needed
   const handleUpdateSettings = (settings) => {
+    if (blocked('settings')) return;
     setState((prevState) => {
       const sundays = generate52Sundays(settings.startDate);
       let newWeeks = {};
@@ -480,7 +537,7 @@ export default function App() {
         };
       }
 
-      return {
+      const nextState = {
         ...prevState,
         startDate: settings.startDate,
         totalWeeks: settings.totalWeeks,
@@ -491,20 +548,110 @@ export default function App() {
         members: membersToUse,
         weeks: newWeeks
       };
+
+      // The roster may have gained or lost members here; re-derive access so newcomers
+      // get a role and departed members leave no dangling grants behind.
+      return { ...nextState, access: normalizeAccess(nextState) };
     });
   };
 
   // Toggle global edit lock
   const handleToggleEditLock = () => {
+    if (blocked('settings')) return;
     setState((prevState) => ({
       ...prevState,
       editLocked: !prevState.editLocked
     }));
   };
 
+  // --- Access control (super admin only) ---------------------------------------
+
+  // Every access mutation runs through here so the block is re-normalized on write:
+  // the super admin can never be demoted, and no grant can outlive its member.
+  const updateAccess = (mutator) => {
+    if (!isAdmin) {
+      console.warn('Access denied: only the super admin can change feature access');
+      return;
+    }
+    setState((prevState) => {
+      const currentAccess = normalizeAccess(prevState);
+      const nextAccess = mutator(currentAccess, prevState);
+      return {
+        ...prevState,
+        access: normalizeAccess({ ...prevState, access: nextAccess })
+      };
+    });
+  };
+
+  // Assign a role. The super admin's own role is fixed and normalizeAccess re-pins it.
+  const handleSetMemberRole = (memberId, roleKey) => {
+    updateAccess((current) => ({
+      ...current,
+      roles: { ...current.roles, [memberId]: roleKey }
+    }));
+  };
+
+  // Standing per-member policy for one feature. `null` clears it back to the role default.
+  const handleSetFeatureOverride = (memberId, feature, level) => {
+    updateAccess((current) => {
+      const forMember = { ...(current.overrides[memberId] || {}) };
+      if (level === null || level === undefined) {
+        delete forMember[feature];
+      } else {
+        forMember[feature] = level;
+      }
+      const overrides = { ...current.overrides };
+      if (Object.keys(forMember).length) {
+        overrides[memberId] = forMember;
+      } else {
+        delete overrides[memberId];
+      }
+      return { ...current, overrides };
+    });
+  };
+
+  // Time-boxed elevation: valid between `from` and `until` inclusive, then it lapses.
+  const handleAddGrant = (grantInput) => {
+    updateAccess((current) => ({
+      ...current,
+      grants: [
+        createGrant({ ...grantInput, grantedBy: currentMember?.id }),
+        ...current.grants
+      ]
+    }));
+  };
+
+  const handleRevokeGrant = (grantId) => {
+    updateAccess((current) => ({
+      ...current,
+      grants: current.grants.filter((g) => g.id !== grantId)
+    }));
+  };
+
+  // Hand the super admin role to someone else. The outgoing admin drops to Collector
+  // rather than to Member, so they keep day-to-day duties.
+  const handleTransferSuperAdmin = (memberId) => {
+    updateAccess((current) => ({
+      ...current,
+      superAdminId: memberId,
+      roles: {
+        ...current.roles,
+        [current.superAdminId]: 'collector',
+        [memberId]: 'superadmin'
+      }
+    }));
+  };
+
   // Show login screen if not logged in
-  if (!loggedInMember) {
+  if (!loggedInMember || !currentMember) {
     return <Login members={state.members} onLogin={handleLogin} />;
+  }
+
+  // A member the super admin has shut out of every feature.
+  if (!FEATURES.some((f) => canView(f.key))) {
+    return (
+      <NoAccessScreen memberName={currentMember.name} onLogout={handleLogout} />
+    );
   }
 
   return (
@@ -514,50 +661,60 @@ export default function App() {
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         groupStats={groupStats}
-        loggedInMember={loggedInMember}
+        loggedInMember={currentMember}
         onLogout={handleLogout}
         memberCount={state.members.length}
         weeklyAmount={state.weeklyAmount}
+        access={access}
+        role={getRole(state, currentMember.id)}
       />
 
       {/* Main Content Area */}
       <main className="content-area">
-        {activeTab === 'dashboard' && (
+        {/* Tells a member why the screen looks read-only, and when their temporary
+            edit access runs out, instead of leaving greyed-out buttons unexplained. */}
+        <AccessBanner
+          state={state}
+          memberId={currentMember.id}
+          today={today}
+          activeTab={activeTab}
+          access={access}
+        />
+
+        {activeTab === 'dashboard' && canView('dashboard') && (
           <Dashboard
             state={state}
             groupStats={groupStats}
             setActiveTab={setActiveTab}
             onTogglePayment={handleTogglePayment}
-            loggedInMember={loggedInMember}
+            loggedInMember={currentMember}
           />
         )}
 
-        {activeTab === 'contributions' && (
+        {activeTab === 'contributions' && canView('contributions') && (
           <SundayContributions
             state={state}
-            editLocked={state.editLocked}
+            editLocked={state.editLocked || !canEdit('contributions')}
             onTogglePayment={handleTogglePayment}
-            onMarkAllPaid={handleMarkAllPaid}
             onChangePaymentMethod={handleChangePaymentMethod}
             onAdvancePayment={handleAdvancePayment}
             onCeaseWeek={handleCeaseWeek}
           />
         )}
 
-        {activeTab === 'loan-collections' && (
+        {activeTab === 'loan-collections' && canView('loan-collections') && (
           <LoanCollections
             state={state}
             groupStats={groupStats}
-            editLocked={state.editLocked}
+            editLocked={state.editLocked || !canEdit('loan-collections')}
             onToggleLoanInstallment={handleToggleLoanInstallment}
-            onMarkAllPaid={handleMarkAllPaid}
             onAdvanceLoanInstallment={handleAdvanceLoanInstallment}
             onCeaseWeek={handleCeaseWeek}
             onCreateLoan={handleCreateLoan}
           />
         )}
 
-        {activeTab === 'ledger' && (
+        {activeTab === 'ledger' && canView('loan-collections') && (
           <SundayLedger
             state={state}
             onToggleLoanInstallment={handleToggleLoanInstallment}
@@ -568,22 +725,22 @@ export default function App() {
         {/* Reached from the Dashboard dues summary and the header Overdue badge.
             Both already pointed here, but no case rendered it, so the content
             area came up blank. */}
-        {activeTab === 'defaulters' && (
+        {activeTab === 'defaulters' && canView('defaulters') && (
           <DefaultersWatchdog state={state} />
         )}
 
-        {activeTab === 'settlement' && (
+        {activeTab === 'settlement' && canView('settlement') && (
           <AnnualSettlement
             state={state}
             groupStats={groupStats}
           />
         )}
 
-        {activeTab === 'members' && (
+        {activeTab === 'members' && canView('members') && (
           <MemberRoster state={state} />
         )}
 
-        {activeTab === 'settings' && (
+        {activeTab === 'settings' && canView('settings') && (
           <Settings
             state={state}
             onUpdateSettings={handleUpdateSettings}
@@ -594,9 +751,94 @@ export default function App() {
             onDeleteExpense={handleDeleteExpense}
             onImportState={handleImportState}
             onResetState={handleResetState}
+            isSuperAdmin={isAdmin}
+            today={today}
+            onSetMemberRole={handleSetMemberRole}
+            onSetFeatureOverride={handleSetFeatureOverride}
+            onAddGrant={handleAddGrant}
+            onRevokeGrant={handleRevokeGrant}
+            onTransferSuperAdmin={handleTransferSuperAdmin}
           />
         )}
       </main>
+    </div>
+  );
+}
+
+// Shown when a member has been shut out of every feature, so the app still explains
+// itself rather than rendering an empty shell.
+function NoAccessScreen({ memberName, onLogout }) {
+  return (
+    <div
+      style={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '20px',
+        textAlign: 'center'
+      }}
+    >
+      <div className="card" style={{ maxWidth: '420px' }}>
+        <ShieldAlert size={40} color="#f59e0b" />
+        <h2 style={{ margin: '16px 0 8px' }}>No access yet</h2>
+        <p style={{ color: 'var(--text-muted, #94a3b8)', marginBottom: '20px' }}>
+          {memberName}, the group's super admin has not opened any section of the app
+          for you. Ask them to grant access from Settings → Access Control.
+        </p>
+        <button className="btn btn-secondary" onClick={onLogout}>
+          <LogOut size={16} /> Log out
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// One-line status strip: what the current member may do here, and when a temporary
+// grant expires. Silent for the super admin, who always has everything.
+function AccessBanner({ state, memberId, today, activeTab, access }) {
+  const feature = featureForTab(activeTab);
+  const activeGrants = getActiveGrants(state, memberId, today).filter(
+    (g) => g.feature === feature
+  );
+  const readOnly =
+    !can(access, feature, 'edit') &&
+    FEATURES.find((f) => f.key === feature)?.editable;
+
+  if (!activeGrants.length && !readOnly) return null;
+
+  const grant = activeGrants[0];
+  const days = grant ? daysRemaining(grant, today) : null;
+
+  return (
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '10px',
+        padding: '10px 14px',
+        marginBottom: '16px',
+        borderRadius: '8px',
+        fontSize: '0.85rem',
+        background: grant ? 'rgba(16, 185, 129, 0.12)' : 'rgba(148, 163, 184, 0.12)',
+        border: `1px solid ${grant ? '#10b981' : '#475569'}`,
+        color: grant ? '#6ee7b7' : '#cbd5e1'
+      }}
+    >
+      {grant ? <Clock size={16} /> : <Eye size={16} />}
+      <span>
+        {grant ? (
+          <>
+            Temporary <strong>{grant.level}</strong> access &mdash;{' '}
+            {describeWindow(grant)}
+            {days !== null && (
+              <> ({days === 0 ? 'ends today' : `${days} day${days === 1 ? '' : 's'} left`})</>
+            )}
+          </>
+        ) : (
+          <>View only &mdash; you do not have edit rights for this section.</>
+        )}
+      </span>
     </div>
   );
 }

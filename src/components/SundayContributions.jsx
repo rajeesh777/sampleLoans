@@ -1,12 +1,11 @@
 import React, { useState } from 'react';
-import { Calendar, CheckCircle2, MessageCircle, CheckSquare, Clock, Filter, Lock } from 'lucide-react';
+import { Calendar, CheckCircle2, MessageCircle, Clock, Filter, Lock } from 'lucide-react';
 import { getMemberStats, formatDateDDMMYY } from '../utils/storage';
 
 export default function SundayContributions({
   state,
   editLocked,
   onTogglePayment,
-  onMarkAllPaid,
   onChangePaymentMethod,
   onAdvancePayment,
   onCeaseWeek
@@ -131,14 +130,6 @@ export default function SundayContributions({
             disabled={weekData.ceased || editLocked}
           >
             <Filter size={14} /> Filter: {filterMode}
-          </button>
-
-          <button
-            className="btn btn-primary btn-sm"
-            onClick={() => onMarkAllPaid(selectedWeek)}
-            disabled={weekData.ceased || editLocked}
-          >
-            <CheckSquare size={16} /> Mark All Paid
           </button>
 
           {editLocked && (

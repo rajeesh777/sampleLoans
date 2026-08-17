@@ -1,6 +1,7 @@
 // Storage, Supabase Sync and State Management for "Isthooi" App
 
 import { isSupabaseConfigured, fetchSupabaseState, syncStateToSupabase } from './supabaseClient';
+import { normalizeAccess } from './permissions';
 
 // Bumped to V3 when the member roster was replaced — member-keyed collections and
 // loans from a V2 state no longer match the current members, so V2 state is not
@@ -156,6 +157,13 @@ export const getInitialState = () => {
   sampleState.weeks[2].collections['m3'].paid = false;
   sampleState.weeks[2].collections['m3'].paidAt = null;
 
+  // Rajeesh (m4) is picked up as super admin by name; Krishnadas starts as the
+  // Collector so the role split is visible out of the box. Everyone else is read-only.
+  sampleState.access = normalizeAccess({
+    ...sampleState,
+    access: { roles: { m1: 'collector' } }
+  });
+
   return sampleState;
 };
 
@@ -183,7 +191,10 @@ export const loadState = () => {
       return init;
     }
     const parsed = JSON.parse(raw);
-    return parsed;
+    // States saved before access control existed carry no `access` block, and members
+    // may have been added or removed since the last save. Rebuilding it on every load
+    // keeps roles, overrides and grants in step with the current roster.
+    return { ...parsed, access: normalizeAccess(parsed) };
   } catch (err) {
     console.error('Failed to load state from localStorage:', err);
     return getInitialState();
