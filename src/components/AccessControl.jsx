@@ -8,6 +8,8 @@ import {
   EyeOff,
   Pencil,
   Crown,
+  KeyRound,
+  Smartphone,
   X
 } from 'lucide-react';
 
@@ -41,11 +43,15 @@ const STATUS_STYLE = {
 export default function AccessControl({
   state,
   today,
+  liveMode,
   onSetMemberRole,
   onSetFeatureOverride,
   onAddGrant,
   onRevokeGrant,
-  onTransferSuperAdmin
+  onTransferSuperAdmin,
+  onIssueOtp,
+  onResetDevice,
+  onSetAdminPassword
 }) {
   const access = normalizeAccess(state);
   const members = state.members || [];
@@ -53,6 +59,17 @@ export default function AccessControl({
   const [selectedMemberId, setSelectedMemberId] = useState(
     () => members.find((m) => m.id !== access.superAdminId)?.id || members[0]?.id || ''
   );
+  // The OTP just issued, held in memory only so it can be read out once. It is
+  // never persisted anywhere in the browser and cannot be recovered afterwards.
+  const [issuedOtp, setIssuedOtp] = useState(null);
+  const [otpBusy, setOtpBusy] = useState('');
+  const [otpError, setOtpError] = useState('');
+
+  // Password rotation. Never pre-filled and never read back — the database stores
+  // only a hash, so there is nothing to display.
+  const [pw, setPw] = useState({ next: '', confirm: '' });
+  const [pwState, setPwState] = useState({ busy: false, error: '', done: false });
+
   const [showGrantModal, setShowGrantModal] = useState(false);
   const [grantForm, setGrantForm] = useState({
     memberId: '',
@@ -98,6 +115,62 @@ export default function AccessControl({
 
   const memberName = (id) => members.find((m) => m.id === id)?.name || 'Unknown';
 
+  const handleIssue = async (member) => {
+    setOtpError('');
+    setOtpBusy(member.id);
+    try {
+      const code = await onIssueOtp(member.id, 24);
+      setIssuedOtp({ memberId: member.id, name: member.name, code });
+    } catch (err) {
+      setOtpError(err.message || 'Could not generate an OTP.');
+    } finally {
+      setOtpBusy('');
+    }
+  };
+
+  const handlePasswordChange = async (e) => {
+    e.preventDefault();
+    setPwState({ busy: false, error: '', done: false });
+
+    if (pw.next.length < 12) {
+      setPwState({ busy: false, error: 'Use at least 12 characters.', done: false });
+      return;
+    }
+    if (pw.next !== pw.confirm) {
+      setPwState({ busy: false, error: 'The two entries do not match.', done: false });
+      return;
+    }
+
+    setPwState({ busy: true, error: '', done: false });
+    try {
+      await onSetAdminPassword(pw.next);
+      setPw({ next: '', confirm: '' });
+      setPwState({ busy: false, error: '', done: true });
+    } catch (err) {
+      setPwState({
+        busy: false,
+        error: err.message || 'Could not change the password.',
+        done: false
+      });
+    }
+  };
+
+  const handleReset = async (member) => {
+    if (!window.confirm(
+      `Sign ${member.name} out of their device? They will need a new OTP to get back in.`
+    )) return;
+
+    setOtpError('');
+    setOtpBusy(member.id);
+    try {
+      await onResetDevice(member.id);
+    } catch (err) {
+      setOtpError(err.message || 'Could not reset that device.');
+    } finally {
+      setOtpBusy('');
+    }
+  };
+
   return (
     <div className="card" style={{ marginBottom: '20px' }}>
       <div className="card-header" style={{ marginBottom: '8px' }}>
@@ -111,6 +184,186 @@ export default function AccessControl({
         per-member override pins a feature open or shut, and a timed grant hands out
         editing rights that expire on their own.
       </p>
+
+      {/* --- Admin password --------------------------------------------------- */}
+      {liveMode && (
+        <div style={{ marginBottom: '28px' }}>
+          <h4 style={{ fontSize: '0.95rem', marginBottom: '4px' }}>Your password</h4>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.82rem', marginBottom: '12px' }}>
+            The only standing password in the group, and the only way back in if you
+            sign out or change device — nobody can issue you an OTP. Stored as a
+            hash, so it cannot be looked up, only replaced.
+          </p>
+
+          {pwState.error && (
+            <div style={{
+              background: 'rgba(244, 63, 94, 0.15)',
+              border: '1px solid #f43f5e',
+              color: '#fca5a5',
+              padding: '10px 12px',
+              borderRadius: '6px',
+              fontSize: '0.82rem',
+              marginBottom: '12px'
+            }}>
+              {pwState.error}
+            </div>
+          )}
+
+          {pwState.done && (
+            <div style={{
+              background: 'rgba(16, 185, 129, 0.12)',
+              border: '1px solid #10b981',
+              color: '#6ee7b7',
+              padding: '10px 12px',
+              borderRadius: '6px',
+              fontSize: '0.82rem',
+              marginBottom: '12px'
+            }}>
+              Password changed. Use it next time you sign in.
+            </div>
+          )}
+
+          <form onSubmit={handlePasswordChange} style={{ display: 'grid', gap: '10px' }}>
+            <input
+              type="password"
+              className="form-input"
+              autoComplete="new-password"
+              placeholder="New password (12 characters or more)"
+              value={pw.next}
+              disabled={pwState.busy}
+              onChange={(e) => setPw({ ...pw, next: e.target.value })}
+              style={{ padding: '8px 12px' }}
+            />
+            <input
+              type="password"
+              className="form-input"
+              autoComplete="new-password"
+              placeholder="Type it again"
+              value={pw.confirm}
+              disabled={pwState.busy}
+              onChange={(e) => setPw({ ...pw, confirm: e.target.value })}
+              style={{ padding: '8px 12px' }}
+            />
+            <button
+              type="submit"
+              className="btn btn-sm btn-secondary"
+              disabled={pwState.busy}
+              style={{ justifySelf: 'start' }}
+            >
+              <KeyRound size={14} />
+              {pwState.busy ? 'Changing…' : 'Change password'}
+            </button>
+          </form>
+        </div>
+      )}
+
+      {/* --- Sign-in OTPs ----------------------------------------------------- */}
+      {liveMode && (
+        <div style={{ marginBottom: '28px' }}>
+          <h4 style={{ fontSize: '0.95rem', marginBottom: '4px' }}>Sign-in OTPs</h4>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.82rem', marginBottom: '12px' }}>
+            Generate a code and pass it to the member yourself — in person, on a call,
+            over WhatsApp. It works once, lasts a day, and binds their device. No SMS
+            service is involved.
+          </p>
+
+          {otpError && (
+            <div style={{
+              background: 'rgba(244, 63, 94, 0.15)',
+              border: '1px solid #f43f5e',
+              color: '#fca5a5',
+              padding: '10px 12px',
+              borderRadius: '6px',
+              fontSize: '0.82rem',
+              marginBottom: '12px'
+            }}>
+              {otpError}
+            </div>
+          )}
+
+          {/* Shown once. Closing it is the only chance to read the code. */}
+          {issuedOtp && (
+            <div style={{
+              background: 'rgba(16, 185, 129, 0.12)',
+              border: '1px solid #10b981',
+              borderRadius: '8px',
+              padding: '16px',
+              marginBottom: '14px',
+              textAlign: 'center'
+            }}>
+              <div style={{ fontSize: '0.82rem', color: '#6ee7b7', marginBottom: '8px' }}>
+                OTP for <strong>{issuedOtp.name}</strong> — give it to them now
+              </div>
+              <div style={{
+                fontSize: '2.2rem',
+                fontWeight: 800,
+                letterSpacing: '0.3em',
+                color: '#ffffff',
+                fontVariantNumeric: 'tabular-nums',
+                marginBottom: '10px'
+              }}>
+                {issuedOtp.code}
+              </div>
+              <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginBottom: '12px' }}>
+                Valid for 24 hours. It cannot be shown again — generate a new one if lost.
+              </div>
+              <button className="btn btn-sm btn-secondary" onClick={() => setIssuedOtp(null)}>
+                <X size={14} /> Done
+              </button>
+            </div>
+          )}
+
+          <div style={{ display: 'grid', gap: '8px' }}>
+            {members
+              .filter((m) => m.id !== access.superAdminId)
+              .map((m) => (
+                <div
+                  key={m.id}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    flexWrap: 'wrap',
+                    padding: '8px 12px',
+                    borderRadius: '8px',
+                    background: 'rgba(148, 163, 184, 0.07)'
+                  }}
+                >
+                  <span style={{ fontWeight: 600, fontSize: '0.88rem', minWidth: '110px' }}>
+                    {m.name}
+                  </span>
+                  <span style={{
+                    fontSize: '0.75rem',
+                    color: m.hasDevice ? '#10b981' : '#94a3b8'
+                  }}>
+                    {m.hasDevice ? '● signed in' : '○ not signed in'}
+                  </span>
+
+                  <button
+                    className="btn btn-sm btn-secondary"
+                    style={{ marginLeft: 'auto' }}
+                    disabled={otpBusy === m.id}
+                    onClick={() => handleIssue(m)}
+                  >
+                    <KeyRound size={14} />
+                    {otpBusy === m.id ? 'Working…' : 'Generate OTP'}
+                  </button>
+
+                  {m.hasDevice && (
+                    <button
+                      className="btn btn-sm btn-rose"
+                      disabled={otpBusy === m.id}
+                      onClick={() => handleReset(m)}
+                      title="Sign this member out of their device"
+                    >
+                      <Smartphone size={14} />
+                    </button>
+                  )}
+                </div>
+              ))}
+          </div>
+        </div>
+      )}
 
       {/* --- Roles ------------------------------------------------------------ */}
       <h4 style={{ fontSize: '0.95rem', marginBottom: '12px' }}>Roles</h4>

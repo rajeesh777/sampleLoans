@@ -1,6 +1,5 @@
 // Storage, Supabase Sync and State Management for "Isthooi" App
 
-import { isSupabaseConfigured, fetchSupabaseState, syncStateToSupabase } from './supabaseClient';
 import { normalizeAccess } from './permissions';
 
 // Bumped to V3 when the member roster was replaced — member-keyed collections and
@@ -167,17 +166,17 @@ export const getInitialState = () => {
   return sampleState;
 };
 
-// Sync state to local storage & cloud database
+// Persist to local storage.
+//
+// In live mode this is only a local cache for instant startup — the database is
+// the source of truth and every mutation is written there row by row via db.js.
+// It deliberately no longer pushes the whole state to the cloud: that was a
+// last-write-wins upsert of the entire dataset, which lost concurrent edits.
 export const saveState = (state) => {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   } catch (err) {
     console.error('Failed to save state to localStorage:', err);
-  }
-
-  // Also sync asynchronously to Supabase cloud database if configured
-  if (isSupabaseConfigured) {
-    syncStateToSupabase(state);
   }
 };
 

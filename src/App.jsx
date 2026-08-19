@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { Clock, Eye, LogOut, ShieldAlert } from 'lucide-react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { Clock, Eye, LogOut, ShieldAlert, CloudOff, Loader2, RefreshCw } from 'lucide-react';
 import Navbar from './components/Navbar';
 import Login from './components/Login';
 import Dashboard from './components/Dashboard';
@@ -34,13 +34,81 @@ import {
   todayStr
 } from './utils/permissions';
 
+import { isSupabaseConfigured } from './utils/supabaseClient';
+import * as db from './utils/db';
+
+// Live mode means the group's data lives in Postgres and is shared between
+// members' devices. Without Supabase credentials the app still runs exactly as
+// before, entirely from localStorage, which keeps local development possible.
+const LIVE = isSupabaseConfigured;
+
 export default function App() {
   const [state, setState] = useState(() => loadState());
   const [activeTab, setActiveTab] = useState('dashboard');
   const [loggedInMember, setLoggedInMember] = useState(() => {
+    if (LIVE) return null;  // live sessions are resolved from the JWT, not localStorage
     const saved = localStorage.getItem('ISTHOOI_LOGGED_IN_MEMBER');
     return saved ? JSON.parse(saved) : null;
   });
+
+  // Live-mode connection state. `booting` covers the first round trip, so the
+  // login screen does not flash before an existing session is recognised.
+  const [booting, setBooting] = useState(LIVE);
+  const [syncError, setSyncError] = useState('');
+  const [refreshing, setRefreshing] = useState(false);
+
+  // Pull the authoritative state from the database.
+  const reload = useCallback(async () => {
+    const fresh = await db.fetchAppState();
+    setState(fresh);
+    return fresh;
+  }, []);
+
+  // Apply a change locally at once, then write the single affected row. If the
+  // database refuses — an access grant lapsed, the week was ceased from another
+  // phone — say so and re-read, rather than leaving the screen showing a payment
+  // that was never recorded.
+  const persist = useCallback((write) => {
+    if (!LIVE) return;
+    Promise.resolve()
+      .then(write)
+      .catch(async (err) => {
+        setSyncError(err.message || 'That change could not be saved.');
+        try { await reload(); } catch { /* keep the error already shown */ }
+      });
+  }, [reload]);
+
+  // Resume an existing session on load: this device may already be bound to a
+  // member from a previous visit.
+  useEffect(() => {
+    if (!LIVE) return;
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const member = await db.getSessionMember();
+        if (cancelled) return;
+        if (member) {
+          await reload();
+          if (!cancelled) setLoggedInMember(member);
+        }
+      } catch (err) {
+        if (!cancelled) setSyncError(err.message || 'Could not reach the database.');
+      } finally {
+        if (!cancelled) setBooting(false);
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [reload]);
+
+  // A payment recorded on one phone should appear on another without a refresh.
+  useEffect(() => {
+    if (!LIVE || !loggedInMember) return;
+    return db.subscribeToChanges(() => {
+      reload().catch(() => { /* a dropped refresh is not worth interrupting for */ });
+    });
+  }, [loggedInMember, reload]);
 
   // Today's date, re-read on a timer so a timed grant starts and lapses on its own
   // without anyone reloading the page.
@@ -59,8 +127,11 @@ export default function App() {
     saveState(state);
   }, [state]);
 
-  // Save logged-in member to localStorage
+  // Save logged-in member to localStorage.
+  // Demo mode only: in live mode the session lives in the JWT, and trusting a
+  // localStorage copy would let anyone hand themselves an identity by editing it.
   useEffect(() => {
+    if (LIVE) return;
     if (loggedInMember) {
       localStorage.setItem('ISTHOOI_LOGGED_IN_MEMBER', JSON.stringify(loggedInMember));
     } else {
@@ -68,14 +139,25 @@ export default function App() {
     }
   }, [loggedInMember]);
 
-  // Login handler
-  const handleLogin = (member) => {
-    setLoggedInMember(member);
+  // Login handler. Live mode hands back the member id the OTP was bound to;
+  // demo mode hands back the member object it matched locally.
+  const handleLogin = async (memberOrId) => {
+    if (LIVE) {
+      const fresh = await reload();
+      setLoggedInMember(fresh.members.find((m) => m.id === memberOrId) || null);
+    } else {
+      setLoggedInMember(memberOrId);
+    }
     setActiveTab('dashboard');
   };
 
   // Logout handler
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    if (LIVE) {
+      // Ends the JWT session. The device stays bound to the member, so signing
+      // back in needs a fresh OTP from the super admin.
+      await db.signOut().catch(() => {});
+    }
     setLoggedInMember(null);
   };
 
@@ -121,13 +203,11 @@ export default function App() {
     if (fallback && fallback.key !== activeTab) setActiveTab(fallback.key);
   }, [access, activeTab, currentMember]);
 
-  // Toggle regular Sunday contribution payment
-  const handleTogglePayment = (weekNum, memberId) => {
-    if (blocked('contributions')) return;
+  // Merge one member's collection record for a week, leaving everything else alone.
+  const patchCollection = (weekNum, memberId, patch) => {
     setState((prevState) => {
-      const nextWeeks = { ...prevState.weeks };
-      const currentWeekData = nextWeeks[weekNum] || { collections: {} };
-      const memberColl = currentWeekData.collections[memberId] || {
+      const weekData = prevState.weeks[weekNum] || { collections: {} };
+      const existing = weekData.collections[memberId] || {
         paid: false,
         amount: prevState.weeklyAmount || 1000,
         paymentMethod: 'UPI',
@@ -137,215 +217,171 @@ export default function App() {
         loanInstallmentPaidAt: null
       };
 
-      const newPaid = !memberColl.paid;
-
-      nextWeeks[weekNum] = {
-        ...currentWeekData,
-        collections: {
-          ...currentWeekData.collections,
-          [memberId]: {
-            ...memberColl,
-            paid: newPaid,
-            paidAt: newPaid ? new Date().toISOString().slice(0, 10) : null
+      return {
+        ...prevState,
+        weeks: {
+          ...prevState.weeks,
+          [weekNum]: {
+            ...weekData,
+            collections: {
+              ...weekData.collections,
+              [memberId]: { ...existing, ...patch }
+            }
           }
         }
       };
-
-      return {
-        ...prevState,
-        weeks: nextWeeks
-      };
     });
+  };
+
+  // Toggle regular Sunday contribution payment
+  const handleTogglePayment = (weekNum, memberId) => {
+    if (blocked('contributions')) return;
+
+    // Computed from the rendered state rather than inside the setState callback,
+    // because the same values have to be sent to the database.
+    const existing = state.weeks[weekNum]?.collections?.[memberId] || {};
+    const record = {
+      paid: !existing.paid,
+      amount: existing.amount ?? (state.weeklyAmount || 1000),
+      paymentMethod: existing.paymentMethod || 'UPI',
+      paidAt: !existing.paid ? today : null
+    };
+
+    patchCollection(weekNum, memberId, record);
+    persist(() => db.setContribution(weekNum, memberId, record));
   };
 
   // Toggle loan installment payment for a member on a specific Sunday
   const handleToggleLoanInstallment = (weekNum, memberId, loanId) => {
     if (blocked('loan-collections')) return;
-    setState((prevState) => {
-      const nextWeeks = { ...prevState.weeks };
-      const currentWeekData = nextWeeks[weekNum] || { collections: {} };
-      const memberColl = currentWeekData.collections[memberId] || {};
 
-      const currentLoanPaid = memberColl.loanInstallmentPaid || false;
-      const newLoanPaid = !currentLoanPaid;
+    const existing = state.weeks[weekNum]?.collections?.[memberId] || {};
+    const targetLoan = state.loans.find((l) => l.id === loanId);
+    const installmentAmt = targetLoan ? targetLoan.weeklyInstallment : 1000;
+    const nowPaid = !existing.loanInstallmentPaid;
 
-      // Find loan
-      const targetLoan = prevState.loans.find((l) => l.id === loanId);
-      const installmentAmt = targetLoan ? targetLoan.weeklyInstallment : 1000;
+    const record = {
+      paid: nowPaid,
+      amount: nowPaid ? installmentAmt : 0,
+      paidAt: nowPaid ? today : null
+    };
 
-      // Update loan repaidAmount
-      const nextLoans = prevState.loans.map((loan) => {
-        if (loan.id === loanId) {
-          const delta = newLoanPaid ? installmentAmt : -installmentAmt;
-          const newRepaid = Math.max(0, loan.repaidAmount + delta);
-          const isFullyRepaid = newRepaid >= loan.requestedAmount;
-          return {
-            ...loan,
-            repaidAmount: newRepaid,
-            isFullyRepaid,
-            status: isFullyRepaid ? 'REPAID' : 'ACTIVE'
-          };
-        }
-        return loan;
-      });
-
-      nextWeeks[weekNum] = {
-        ...currentWeekData,
-        collections: {
-          ...currentWeekData.collections,
-          [memberId]: {
-            ...memberColl,
-            loanInstallmentPaid: newLoanPaid,
-            loanInstallmentAmount: newLoanPaid ? installmentAmt : 0,
-            loanInstallmentPaidAt: newLoanPaid ? new Date().toISOString().slice(0, 10) : null
-          }
-        }
-      };
-
-      return {
-        ...prevState,
-        weeks: nextWeeks,
-        loans: nextLoans
-      };
+    patchCollection(weekNum, memberId, {
+      loanInstallmentPaid: record.paid,
+      loanInstallmentAmount: record.amount,
+      loanInstallmentPaidAt: record.paidAt
     });
+
+    // Optimistic local balance only. In live mode the authoritative figure is
+    // recomputed by a database trigger from the installment rows, so two people
+    // recording payments at once cannot overwrite each other's total.
+    setState((prevState) => ({
+      ...prevState,
+      loans: prevState.loans.map((loan) => {
+        if (loan.id !== loanId) return loan;
+        const delta = nowPaid ? installmentAmt : -installmentAmt;
+        const newRepaid = Math.min(
+          loan.requestedAmount,
+          Math.max(0, loan.repaidAmount + delta)
+        );
+        return {
+          ...loan,
+          repaidAmount: newRepaid,
+          isFullyRepaid: newRepaid >= loan.requestedAmount,
+          status: newRepaid >= loan.requestedAmount ? 'REPAID' : 'ACTIVE'
+        };
+      })
+    }));
+
+    persist(() => db.setLoanInstallment(weekNum, memberId, loanId, record));
   };
 
   // Change payment method (UPI, Cash, Bank)
   const handleChangePaymentMethod = (weekNum, memberId, method) => {
     if (blocked('contributions')) return;
-    setState((prevState) => {
-      const nextWeeks = { ...prevState.weeks };
-      const weekData = nextWeeks[weekNum] || { collections: {} };
-      const memberColl = weekData.collections[memberId] || {
-        paid: false,
-        amount: prevState.weeklyAmount || 1000,
-        paymentMethod: 'UPI',
-        paidAt: null,
-        loanInstallmentPaid: false,
-        loanInstallmentAmount: 0,
-        loanInstallmentPaidAt: null
-      };
 
-      nextWeeks[weekNum] = {
-        ...weekData,
-        collections: {
-          ...weekData.collections,
-          [memberId]: {
-            ...memberColl,
-            paymentMethod: method
-          }
-        }
-      };
+    const existing = state.weeks[weekNum]?.collections?.[memberId] || {};
+    const record = {
+      paid: existing.paid || false,
+      amount: existing.amount ?? (state.weeklyAmount || 1000),
+      paymentMethod: method,
+      paidAt: existing.paidAt || null
+    };
 
-      return {
-        ...prevState,
-        weeks: nextWeeks
-      };
-    });
+    patchCollection(weekNum, memberId, { paymentMethod: method });
+    persist(() => db.setContribution(weekNum, memberId, record));
+  };
+
+  // Spread a lump sum across consecutive weeks, filling one weekly amount at a
+  // time. Returns the per-week records so the caller can write each one.
+  const spreadAcrossWeeks = (startWeek, totalAmount, perWeek, lastWeek) => {
+    const slices = [];
+    let remaining = totalAmount;
+    let week = startWeek;
+
+    while (remaining > 0 && week <= lastWeek) {
+      const amount = Math.min(remaining, perWeek);
+      slices.push({ weekNum: week, amount });
+      remaining -= amount;
+      week++;
+    }
+    return slices;
   };
 
   // Advance payment for Sunday contributions (custom amount distributed across weeks)
   const handleAdvancePayment = (startWeek, memberId, totalAmount, method = 'UPI') => {
     if (blocked('contributions')) return;
-    setState((prevState) => {
-      const nextWeeks = { ...prevState.weeks };
-      const weeklyAmount = prevState.weeklyAmount || 1000;
-      let remainingAmount = totalAmount;
-      let currentWeek = startWeek;
 
-      while (remainingAmount > 0 && currentWeek <= 52) {
-        const weekData = nextWeeks[currentWeek] || { collections: {} };
-        const memberColl = weekData.collections[memberId] || {
-          paid: false,
-          amount: weeklyAmount,
-          paymentMethod: 'UPI',
-          paidAt: null,
-          loanInstallmentPaid: false,
-          loanInstallmentAmount: 0,
-          loanInstallmentPaidAt: null
-        };
-        const amountForThisWeek = Math.min(remainingAmount, weeklyAmount);
+    const weeklyAmount = state.weeklyAmount || 1000;
+    const lastWeek = state.totalWeeks || 52;
+    const slices = spreadAcrossWeeks(startWeek, totalAmount, weeklyAmount, lastWeek);
 
-        nextWeeks[currentWeek] = {
-          ...weekData,
-          collections: {
-            ...weekData.collections,
-            [memberId]: {
-              ...memberColl,
-              paid: true,
-              amount: amountForThisWeek,
-              paidAt: new Date().toISOString().slice(0, 10),
-              paymentMethod: method
-            }
-          }
-        };
-
-        remainingAmount -= amountForThisWeek;
-        currentWeek++;
-      }
-
-      return {
-        ...prevState,
-        weeks: nextWeeks
-      };
+    slices.forEach(({ weekNum, amount }) => {
+      const record = { paid: true, amount, paymentMethod: method, paidAt: today };
+      patchCollection(weekNum, memberId, record);
+      persist(() => db.setContribution(weekNum, memberId, record));
     });
   };
 
   // Advance payment for loan installments (custom amount distributed across weeks)
   const handleAdvanceLoanInstallment = (startWeek, memberId, loanId, totalAmount) => {
     if (blocked('loan-collections')) return;
-    setState((prevState) => {
-      const nextWeeks = { ...prevState.weeks };
-      const targetLoan = prevState.loans.find((l) => l.id === loanId);
-      const installmentAmt = targetLoan ? targetLoan.weeklyInstallment : 1000;
-      let remainingAmount = totalAmount;
-      let currentWeek = startWeek;
-      let totalAdvancePayment = 0;
 
-      while (remainingAmount > 0 && currentWeek <= 52) {
-        const weekData = nextWeeks[currentWeek] || { collections: {} };
-        const memberColl = weekData.collections[memberId] || {};
-        const amountForThisWeek = Math.min(remainingAmount, installmentAmt);
+    const targetLoan = state.loans.find((l) => l.id === loanId);
+    const installmentAmt = targetLoan ? targetLoan.weeklyInstallment : 1000;
+    const lastWeek = state.totalWeeks || 52;
+    const slices = spreadAcrossWeeks(startWeek, totalAmount, installmentAmt, lastWeek);
+    const totalAdvance = slices.reduce((sum, s) => sum + s.amount, 0);
 
-        nextWeeks[currentWeek] = {
-          ...weekData,
-          collections: {
-            ...weekData.collections,
-            [memberId]: {
-              ...memberColl,
-              loanInstallmentPaid: true,
-              loanInstallmentAmount: amountForThisWeek,
-              loanInstallmentPaidAt: new Date().toISOString().slice(0, 10)
-            }
-          }
-        };
-
-        totalAdvancePayment += amountForThisWeek;
-        remainingAmount -= amountForThisWeek;
-        currentWeek++;
-      }
-
-      // Update loan repaidAmount
-      const nextLoans = prevState.loans.map((loan) => {
-        if (loan.id === loanId) {
-          const newRepaid = Math.min(loan.requestedAmount, loan.repaidAmount + totalAdvancePayment);
-          const isFullyRepaid = newRepaid >= loan.requestedAmount;
-          return {
-            ...loan,
-            repaidAmount: newRepaid,
-            isFullyRepaid,
-            status: isFullyRepaid ? 'REPAID' : 'ACTIVE'
-          };
-        }
-        return loan;
+    slices.forEach(({ weekNum, amount }) => {
+      patchCollection(weekNum, memberId, {
+        loanInstallmentPaid: true,
+        loanInstallmentAmount: amount,
+        loanInstallmentPaidAt: today
       });
-
-      return {
-        ...prevState,
-        weeks: nextWeeks,
-        loans: nextLoans
-      };
+      persist(() =>
+        db.setLoanInstallment(weekNum, memberId, loanId, {
+          paid: true,
+          amount,
+          paidAt: today
+        })
+      );
     });
+
+    // Optimistic only; the database recomputes the balance from the rows above.
+    setState((prevState) => ({
+      ...prevState,
+      loans: prevState.loans.map((loan) => {
+        if (loan.id !== loanId) return loan;
+        const newRepaid = Math.min(loan.requestedAmount, loan.repaidAmount + totalAdvance);
+        return {
+          ...loan,
+          repaidAmount: newRepaid,
+          isFullyRepaid: newRepaid >= loan.requestedAmount,
+          status: newRepaid >= loan.requestedAmount ? 'REPAID' : 'ACTIVE'
+        };
+      })
+    }));
   };
 
   // Create new loan (10% upfront fee deduction)
@@ -370,6 +406,7 @@ export default function App() {
       ...prevState,
       loans: [newLoan, ...prevState.loans]
     }));
+    persist(() => db.createLoan(newLoan));
   };
 
   // Record extra loan repayment installment
@@ -400,48 +437,48 @@ export default function App() {
   // Record a miscellaneous group expense against a week; deducted from treasury cash
   const handleAddExpense = (expense) => {
     if (blocked('settings')) return;
-    setState((prevState) => {
-      const weekNum = Number(expense.weekNum) || prevState.currentWeekNum || 1;
-      const newExpense = {
-        id: `exp-${Date.now()}`,
-        description: (expense.description || '').trim() || 'Miscellaneous expense',
-        amount: Number(expense.amount) || 0,
-        weekNum,
-        // Default to the week's Sunday so the expense sorts with that week's activity
-        date: expense.date || prevState.weeks[weekNum]?.date || new Date().toISOString().slice(0, 10),
-        paymentMethod: expense.paymentMethod || 'Cash',
-        createdAt: new Date().toISOString().slice(0, 10)
-      };
 
-      return {
-        ...prevState,
-        expenses: [newExpense, ...(prevState.expenses || [])]
-      };
-    });
+    const weekNum = Number(expense.weekNum) || state.currentWeekNum || 1;
+    const newExpense = {
+      id: `exp-${Date.now()}`,
+      description: (expense.description || '').trim() || 'Miscellaneous expense',
+      amount: Number(expense.amount) || 0,
+      weekNum,
+      // Default to the week's Sunday so the expense sorts with that week's activity
+      date: expense.date || state.weeks[weekNum]?.date || today,
+      paymentMethod: expense.paymentMethod || 'Cash',
+      createdAt: today
+    };
+
+    setState((prevState) => ({
+      ...prevState,
+      expenses: [newExpense, ...(prevState.expenses || [])]
+    }));
+    persist(() => db.addExpense(newExpense));
   };
 
   // Edit an existing miscellaneous expense
   const handleUpdateExpense = (expenseId, updates) => {
     if (blocked('settings')) return;
-    setState((prevState) => {
-      const nextExpenses = (prevState.expenses || []).map((e) => {
-        if (e.id !== expenseId) return e;
-        const weekNum = Number(updates.weekNum) || e.weekNum;
-        return {
-          ...e,
-          description: (updates.description || '').trim() || e.description,
-          amount: Number(updates.amount) || 0,
-          weekNum,
-          date: updates.date || prevState.weeks[weekNum]?.date || e.date,
-          paymentMethod: updates.paymentMethod || e.paymentMethod
-        };
-      });
 
-      return {
-        ...prevState,
-        expenses: nextExpenses
-      };
-    });
+    const existing = (state.expenses || []).find((e) => e.id === expenseId);
+    if (!existing) return;
+
+    const weekNum = Number(updates.weekNum) || existing.weekNum;
+    const merged = {
+      ...existing,
+      description: (updates.description || '').trim() || existing.description,
+      amount: Number(updates.amount) || 0,
+      weekNum,
+      date: updates.date || state.weeks[weekNum]?.date || existing.date,
+      paymentMethod: updates.paymentMethod || existing.paymentMethod
+    };
+
+    setState((prevState) => ({
+      ...prevState,
+      expenses: (prevState.expenses || []).map((e) => (e.id === expenseId ? merged : e))
+    }));
+    persist(() => db.updateExpense(expenseId, merged));
   };
 
   // Remove a miscellaneous expense; the amount returns to treasury cash
@@ -451,11 +488,19 @@ export default function App() {
       ...prevState,
       expenses: (prevState.expenses || []).filter((e) => e.id !== expenseId)
     }));
+    persist(() => db.deleteExpense(expenseId));
   };
 
   // Import JSON backup
   const handleImportState = (importedData) => {
     if (blocked('settings')) return;
+    if (LIVE) {
+      setSyncError(
+        'Importing a backup is disabled in live mode — it would overwrite shared ' +
+        'group data. Restore from a database backup instead.'
+      );
+      return;
+    }
     // A backup may predate access control, or carry a roster that no longer matches
     // its access block — rebuild it so an import can never leave the group locked out.
     setState({ ...importedData, access: normalizeAccess(importedData) });
@@ -464,6 +509,10 @@ export default function App() {
   // Reset to initial demo state
   const handleResetState = () => {
     if (blocked('settings')) return;
+    if (LIVE) {
+      setSyncError('Reset is disabled in live mode — it would wipe the group ledger.');
+      return;
+    }
     const fresh = getInitialState();
     setState(fresh);
   };
@@ -479,10 +528,11 @@ export default function App() {
         [weekNum]: {
           ...prevState.weeks[weekNum],
           ceased: true,
-          ceaseDate: new Date().toISOString().slice(0, 10)
+          ceaseDate: today
         }
       }
     }));
+    persist(() => db.ceaseWeek(weekNum));
   };
 
   // Update settings and regenerate weeks if needed
@@ -553,15 +603,38 @@ export default function App() {
       // get a role and departed members leave no dangling grants behind.
       return { ...nextState, access: normalizeAccess(nextState) };
     });
+
+    persist(async () => {
+      await db.updateSettings({
+        groupName: settings.groupName,
+        weeklyAmount: settings.weeklyAmount,
+        currentWeekNum: state.currentWeekNum,
+        startDate: settings.startDate,
+        totalWeeks: settings.totalWeeks,
+        groupUpiVpa: settings.groupUpiVpa,
+        groupNotes: settings.groupNotes
+      });
+
+      // Roster edits arrive through the same form, so push them too. Members are
+      // deactivated rather than deleted: their contribution history must survive.
+      if (settings.members) {
+        const keptIds = new Set(settings.members.map((m) => m.id));
+        await Promise.all(settings.members.map((m) => db.upsertMember(m)));
+        await Promise.all(
+          state.members
+            .filter((m) => !keptIds.has(m.id))
+            .map((m) => db.deactivateMember(m.id))
+        );
+      }
+    });
   };
 
   // Toggle global edit lock
   const handleToggleEditLock = () => {
     if (blocked('settings')) return;
-    setState((prevState) => ({
-      ...prevState,
-      editLocked: !prevState.editLocked
-    }));
+    const next = !state.editLocked;
+    setState((prevState) => ({ ...prevState, editLocked: next }));
+    persist(() => db.setEditLock(next));
   };
 
   // --- Access control (super admin only) ---------------------------------------
@@ -589,6 +662,7 @@ export default function App() {
       ...current,
       roles: { ...current.roles, [memberId]: roleKey }
     }));
+    persist(() => db.setMemberRole(memberId, roleKey));
   };
 
   // Standing per-member policy for one feature. `null` clears it back to the role default.
@@ -608,17 +682,18 @@ export default function App() {
       }
       return { ...current, overrides };
     });
+    persist(() => db.setFeatureOverride(memberId, feature, level));
   };
 
   // Time-boxed elevation: valid between `from` and `until` inclusive, then it lapses.
   const handleAddGrant = (grantInput) => {
+    // Built once, outside the state updater, so the same id reaches the database.
+    const grant = createGrant({ ...grantInput, grantedBy: currentMember?.id });
     updateAccess((current) => ({
       ...current,
-      grants: [
-        createGrant({ ...grantInput, grantedBy: currentMember?.id }),
-        ...current.grants
-      ]
+      grants: [grant, ...current.grants]
     }));
+    persist(() => db.addGrant(grant));
   };
 
   const handleRevokeGrant = (grantId) => {
@@ -626,6 +701,7 @@ export default function App() {
       ...current,
       grants: current.grants.filter((g) => g.id !== grantId)
     }));
+    persist(() => db.revokeGrant(grantId));
   };
 
   // Hand the super admin role to someone else. The outgoing admin drops to Collector
@@ -640,7 +716,55 @@ export default function App() {
         [memberId]: 'superadmin'
       }
     }));
+    // A database trigger demotes the outgoing holder, so only this one write is
+    // needed and the group can never end up with two super admins or none.
+    persist(() => db.transferSuperAdmin(memberId));
   };
+
+  // Issue a sign-in OTP for a member. Returns the plaintext for the super admin to
+  // pass on; it is never stored in the browser and cannot be read back later.
+  const handleIssueOtp = async (memberId, validHours) => {
+    if (!isAdmin) throw new Error('Only the super admin can issue an OTP');
+    if (!LIVE) throw new Error('OTPs need the live database. This is demo mode.');
+    return db.issueOtp(memberId, validHours);
+  };
+
+  const handleResetDevice = async (memberId) => {
+    if (!isAdmin) throw new Error('Only the super admin can reset a device');
+    if (!LIVE) throw new Error('Device resets need the live database.');
+    await db.resetMemberDevice(memberId);
+    await reload();
+  };
+
+  // Rotate the super admin's own password. The length and authority checks live in
+  // the database too — this is only so the UI can report a problem straight away.
+  const handleSetAdminPassword = async (newPassword) => {
+    if (!isAdmin) throw new Error('Only the super admin can change this password');
+    if (!LIVE) throw new Error('The admin password needs the live database.');
+    if (!newPassword || newPassword.length < 12) {
+      throw new Error('The password must be at least 12 characters');
+    }
+    await db.setAdminPassword(newPassword);
+  };
+
+  // First paint in live mode: an existing session may already be signed in, so
+  // wait for that check rather than flashing the login screen.
+  if (booting) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '14px',
+        color: 'var(--text-muted)'
+      }}>
+        <Loader2 size={28} className="spin" />
+        <span style={{ fontSize: '0.9rem' }}>Connecting…</span>
+      </div>
+    );
+  }
 
   // Show login screen if not logged in
   if (!loggedInMember || !currentMember) {
@@ -671,6 +795,54 @@ export default function App() {
 
       {/* Main Content Area */}
       <main className="content-area">
+        {/* A write the database refused — a lapsed grant, a ceased week, a dropped
+            connection. Shown rather than swallowed, because the member would
+            otherwise believe a payment had been recorded when it had not. */}
+        {syncError && (
+          <div
+            role="alert"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              padding: '10px 14px',
+              marginBottom: '16px',
+              borderRadius: '8px',
+              fontSize: '0.85rem',
+              background: 'rgba(244, 63, 94, 0.12)',
+              border: '1px solid #f43f5e',
+              color: '#fca5a5'
+            }}
+          >
+            <CloudOff size={16} style={{ flexShrink: 0 }} />
+            <span style={{ flex: 1 }}>{syncError}</span>
+            <button
+              className="btn btn-sm btn-secondary"
+              disabled={refreshing}
+              onClick={async () => {
+                setRefreshing(true);
+                try {
+                  await reload();
+                  setSyncError('');
+                } catch (err) {
+                  setSyncError(err.message || 'Still cannot reach the database.');
+                } finally {
+                  setRefreshing(false);
+                }
+              }}
+            >
+              <RefreshCw size={14} className={refreshing ? 'spin' : ''} /> Retry
+            </button>
+            <button
+              className="btn btn-sm btn-secondary"
+              onClick={() => setSyncError('')}
+              aria-label="Dismiss"
+            >
+              ✕
+            </button>
+          </div>
+        )}
+
         {/* Tells a member why the screen looks read-only, and when their temporary
             edit access runs out, instead of leaving greyed-out buttons unexplained. */}
         <AccessBanner
@@ -753,11 +925,15 @@ export default function App() {
             onResetState={handleResetState}
             isSuperAdmin={isAdmin}
             today={today}
+            liveMode={LIVE}
             onSetMemberRole={handleSetMemberRole}
             onSetFeatureOverride={handleSetFeatureOverride}
             onAddGrant={handleAddGrant}
             onRevokeGrant={handleRevokeGrant}
             onTransferSuperAdmin={handleTransferSuperAdmin}
+            onIssueOtp={handleIssueOtp}
+            onResetDevice={handleResetDevice}
+            onSetAdminPassword={handleSetAdminPassword}
           />
         )}
       </main>

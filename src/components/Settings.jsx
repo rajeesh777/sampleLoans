@@ -15,11 +15,15 @@ export default function Settings({
   onDeleteExpense,
   isSuperAdmin,
   today,
+  liveMode,
   onSetMemberRole,
   onSetFeatureOverride,
   onAddGrant,
   onRevokeGrant,
-  onTransferSuperAdmin
+  onTransferSuperAdmin,
+  onIssueOtp,
+  onResetDevice,
+  onSetAdminPassword
 }) {
   const [startDate, setStartDate] = useState(state.startDate || '2026-01-04');
   const [totalWeeks, setTotalWeeks] = useState(state.totalWeeks || 52);
@@ -326,11 +330,15 @@ export default function Settings({
         <AccessControl
           state={state}
           today={today}
+          liveMode={liveMode}
           onSetMemberRole={onSetMemberRole}
           onSetFeatureOverride={onSetFeatureOverride}
           onAddGrant={onAddGrant}
           onRevokeGrant={onRevokeGrant}
           onTransferSuperAdmin={onTransferSuperAdmin}
+          onIssueOtp={onIssueOtp}
+          onResetDevice={onResetDevice}
+          onSetAdminPassword={onSetAdminPassword}
         />
       )}
 

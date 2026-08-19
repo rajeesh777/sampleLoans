@@ -97,11 +97,26 @@ The app uses a flat React state persisted to localStorage (key: `ISTHOOI_APP_STA
 
 ## Cloud & Storage
 
-- **Primary**: `localStorage` (synchronous, always available)
-- **Optional**: Supabase (see `src/utils/supabaseClient.js`)
-  - Configured via `.env` file (keys: `VITE_SUPABASE_URL`, `VITE_SUPABASE_KEY`)
-  - Syncs state asynchronously after save; does not block UI
-  - If missing/misconfigured, app runs normally in localStorage-only mode
+The app runs in one of two modes, decided at startup by whether Supabase
+credentials are present (`LIVE` in `App.jsx`).
+
+**Demo mode** (no `.env`): everything lives in `localStorage`. Login is first name
++ `abcd`. This is the mode to use for UI work.
+
+**Live mode** (`.env` present): Postgres is the source of truth.
+- `.env` keys: `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`
+  (`VITE_SUPABASE_KEY` is also accepted — the two names had drifted apart).
+- `src/utils/db.js` reads the normalized tables and reassembles the same flat
+  `state` object the components expect, so no component knows which mode it is in.
+- Every mutation writes **one row**, not the whole state. The previous design
+  upserted the entire state as a JSON blob on each change, which meant two people
+  recording payments at the same time lost one of them.
+- `localStorage` remains only as a startup cache.
+- Realtime subscriptions refresh other members' screens automatically.
+- Import/export and Reset are disabled in live mode — both would overwrite shared
+  group data.
+
+See `SUPABASE_SETUP.md` for the full setup walkthrough.
 
 ## Styling
 - **src/index.css**: Global styles, CSS variables for colors
@@ -134,7 +149,51 @@ Navigate to http://localhost:5173. Changes auto-reload.
 - Clear localStorage if corrupted: `localStorage.removeItem('ISTHOOI_APP_STATE_V3')`
 
 ## Database Schema (Supabase)
-Schema available in `supabase_schema.sql`. The app does NOT enforce schema validation—Supabase sync is best-effort and optional. Focus on localStorage correctness.
+
+`supabase/schema.sql` (tables, functions, RLS) and `supabase/seed.sql` (initial
+roster and calendar). The old single-blob `supabase_schema.sql` has been removed —
+its policies were `USING (true)`, which made the whole ledger publicly writable to
+anyone holding the anon key.
+
+### Authentication
+No SMS provider, no email provider, no paid Supabase features. Two routes, both
+resolved inside Postgres:
+
+- **Members** — the super admin generates a 6-digit OTP in Settings → Access
+  Control and passes it on directly; the member signs in with their first name or
+  phone plus that code (`redeem_access_code`).
+- **Super admin** — signs in with a password (`sign_in_super_admin`). They need a
+  separate route because `issue_access_code()` requires `is_super_admin()`, which
+  requires already being signed in; without it, logging out would lock them out
+  permanently.
+
+Mechanically both start with `signInAnonymously()`, which yields a JWT bound to
+nobody: `current_member_id()` returns NULL and every policy denies. The OTP or
+password then binds that session to a member row.
+
+OTPs and the admin password are stored as bcrypt hashes only, in tables whose RLS
+has **no policies at all**, so nothing reachable through the anon/authenticated API
+can read them. Change the password with
+`select public.set_admin_password('…')` or from Access Control.
+
+### Permissions exist in two places, deliberately
+| Where | File | Job |
+| --- | --- | --- |
+| Browser | `src/utils/permissions.js` | What to show and enable |
+| Database | `supabase/schema.sql` §3 | What is actually allowed |
+
+The browser copy is a convenience; the database copy is the security boundary.
+**Changing the rules means changing both** — they mirror each other function for
+function (`role_default_level`, `effective_level`, `can_view`, `can_edit`).
+
+### Invariants the database owns, not the client
+- `loans.repaid_amount` is recomputed by trigger from `loan_installments`, so
+  concurrent collectors cannot lose a payment to a read-modify-write race.
+- `loans.status` is derived from the balance.
+- Ceased weeks and the global edit lock are enforced in policy.
+- `audit_log` has no update or delete policy — the trail is append-only for
+  everyone, super admin included.
+- Members are deactivated, never deleted, so contribution history survives.
 
 ## Notes for Future Changes
 - Members can be added/removed via Settings → Members Management; displays dynamically in Navbar, Dashboard, and AnnualSettlement
